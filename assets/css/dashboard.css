@@ -1,0 +1,54 @@
+.sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: #222b3a;
+}
+.sidebar-brand {
+  font-size: 1.35rem;
+  font-weight: bold;
+}
+.sidebar-nav .nav-link {
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 16px;
+  transition: background 0.18s;
+}
+.sidebar-nav .nav-link.active,
+.sidebar-nav .nav-link:hover {
+  background: #3d5a80;
+  color: #fff;
+}
+.main-content {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+.summary-card {
+  box-shadow: 0 2px 16px #0001;
+  border-radius: 16px;
+}
+.icon-circle {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  border-radius: 50%;
+}
+@media (max-width: 991px) {
+  .sidebar {
+    width: 100px;
+    padding: 1rem 0.4rem;
+  }
+  .sidebar-brand span {
+    display: none;
+  }
+  .sidebar-nav .nav-link span {
+    display: none;
+  }
+}
+@media (max-width: 768px) {
+  .sidebar {
+    display: none !important;
+  }
+}

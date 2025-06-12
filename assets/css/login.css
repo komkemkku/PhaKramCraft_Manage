@@ -1,0 +1,30 @@
+body.login-bg {
+  background: linear-gradient(120deg, #3d5a80 0%, #98c1d9 100%);
+  min-height: 100vh;
+}
+.login-card {
+  width: 100%;
+  max-width: 370px;
+  border: none;
+  background: rgba(255, 255, 255, 0.97);
+}
+.login-card img {
+  filter: drop-shadow(0 2px 6px #0002);
+}
+.btn-primary {
+  background-color: #3d5a80;
+  border: none;
+  transition: background 0.2s;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #293e56;
+}
+.form-label {
+  font-weight: 500;
+}
+@media (max-width: 576px) {
+  .login-card {
+    padding: 2rem 1rem;
+  }
+}
