@@ -6,13 +6,14 @@ let orders = [
     orderNo: "ORD-0001",
     buyer: "สมศรี",
     address: "99 หมู่ 1 ต.ทุ่งกล้วย อ.ภูซาง จ.พะเยา 56110",
-    paymentProof: "https://img2.pic.in.th/pic/20230819-194420.jpg", // ตัวอย่าง url รูป
+    paymentProof: "https://img2.pic.in.th/pic/20230819-194420.jpg",
     items: [
       { product: "ผ้าพันคอคราม", qty: 2, price: 200 },
       { product: "เสื้อคราม", qty: 1, price: 390 },
     ],
     total: 790,
     status: "ชำระเงินแล้ว",
+    tracking: "TH123456789TH",
   },
   {
     id: 2,
@@ -24,6 +25,7 @@ let orders = [
     items: [{ product: "กระเป๋าย้อมคราม", qty: 1, price: 199 }],
     total: 199,
     status: "รอดำเนินการ",
+    tracking: "",
   },
 ];
 
@@ -112,6 +114,12 @@ window.viewOrderDetail = function (id) {
                 }>จัดส่งแล้ว</option>
             </select>
         </div>
+        <div class="mb-2"><b>หมายเลขติดตามพัสดุ:</b>
+            <input type="text" id="trackingInput" class="form-control tracking-edit mt-1" value="${
+              order.tracking || ""
+            }" placeholder="ใส่เลขพัสดุ (ถ้ามี)">
+            <div class="form-text">* ใส่เลขพัสดุเมื่อเปลี่ยนสถานะเป็น "จัดส่งแล้ว"</div>
+        </div>
         <div class="mb-2">
             <b>หลักฐานการชำระเงิน:</b>
             ${
@@ -152,22 +160,24 @@ window.viewOrderDetail = function (id) {
   new bootstrap.Modal(document.getElementById("orderDetailModal")).show();
 };
 
-// ----- เปลี่ยนสถานะ -----
+// ----- SAVE STATUS & TRACKING -----
 document
   .getElementById("saveOrderStatusBtn")
   .addEventListener("click", function () {
     const select = document.getElementById("orderStatusSelect");
+    const trackingInput = document.getElementById("trackingInput");
     if (currentOrderId && select) {
       const order = orders.find((o) => o.id === currentOrderId);
       if (order) {
         order.status = select.value;
+        order.tracking = trackingInput.value.trim();
         renderOrders();
         // แจ้งเตือน (option)
         const m = document.createElement("div");
         m.className =
           "alert alert-success position-fixed top-0 start-50 translate-middle-x mt-4 shadow";
         m.style.zIndex = 1056;
-        m.textContent = "อัปเดตสถานะออเดอร์สำเร็จ";
+        m.textContent = "อัปเดตข้อมูลสำเร็จ";
         document.body.appendChild(m);
         setTimeout(() => m.remove(), 2000);
       }
@@ -187,6 +197,7 @@ document.getElementById("printOrderBtn").addEventListener("click", function () {
         <head>
             <title>พิมพ์ใบคำสั่งซื้อ</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>body{font-size:1rem;padding:2rem;}</style>
         </head>
         <body class="p-3">${printArea}</body>
         </html>
@@ -222,7 +233,7 @@ document
 // ----- LOGOUT -----
 document.getElementById("logoutBtn").addEventListener("click", function () {
   localStorage.removeItem("jwt_token");
-  window.location.href = "/index.html";
+  window.location.href = "login.html";
 });
 
 // ----- INIT -----

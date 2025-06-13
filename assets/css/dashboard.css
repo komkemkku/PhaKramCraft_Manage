@@ -52,3 +52,14 @@
     display: none !important;
   }
 }
+
+#salesChart {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.04);
+  padding: 18px 0 8px 0;
+}
+.card .card-body {
+  background: #f8f9fb;
+  border-radius: 18px;
+}

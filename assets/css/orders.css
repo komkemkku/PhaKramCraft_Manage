@@ -42,3 +42,7 @@
     display: none !important;
   }
 }
+.tracking-edit {
+  max-width: 250px;
+  display: inline-block;
+}

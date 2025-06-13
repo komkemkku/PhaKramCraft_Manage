@@ -63,6 +63,69 @@ const orders = [
     total: 200,
     status: "ชำระเงินแล้ว",
   },
+  {
+    id: 4,
+    date: "2025-02-20",
+    orderNo: "ORD-0004",
+    buyer: "ชมพู่",
+    items: [{ product: "ผ้าพันคอคราม", qty: 1, price: 200, cost: 120 }],
+    total: 200,
+    status: "ชำระเงินแล้ว",
+  },
+  {
+    id: 4,
+    date: "2025-11-20",
+    orderNo: "ORD-0004",
+    buyer: "ชมพู่",
+    items: [{ product: "ผ้าพันคอคราม", qty: 1, price: 200, cost: 120 }],
+    total: 200,
+    status: "ชำระเงินแล้ว",
+  },
+  {
+    id: 4,
+    date: "2025-12-20",
+    orderNo: "ORD-0004",
+    buyer: "ชมพู่",
+    items: [{ product: "ผ้าพันคอคราม", qty: 1, price: 200, cost: 120 }],
+    total: 200,
+    status: "ชำระเงินแล้ว",
+  },
+  {
+    id: 4,
+    date: "2023-02-20",
+    orderNo: "ORD-0004",
+    buyer: "ชมพู่",
+    items: [{ product: "ผ้าพันคอคราม", qty: 1, price: 200, cost: 120 }],
+    total: 200,
+    status: "ชำระเงินแล้ว",
+  },
+  {
+    id: 4,
+    date: "2023-02-20",
+    orderNo: "ORD-0004",
+    buyer: "ชมพู่",
+    items: [{ product: "ผ้าพันคอคราม", qty: 1, price: 200, cost: 120 }],
+    total: 200,
+    status: "ชำระเงินแล้ว",
+  },
+  {
+    id: 4,
+    date: "2026-02-20",
+    orderNo: "ORD-0004",
+    buyer: "ชมพู่",
+    items: [{ product: "ผ้าพันคอคราม", qty: 1, price: 200, cost: 120 }],
+    total: 200,
+    status: "ชำระเงินแล้ว",
+  },
+  {
+    id: 4,
+    date: "2026-02-20",
+    orderNo: "ORD-0004",
+    buyer: "ชมพู่",
+    items: [{ product: "ผ้าพันคอคราม", qty: 1, price: 200, cost: 120 }],
+    total: 200,
+    status: "ชำระเงินแล้ว",
+  },
 ];
 // เพิ่ม mock order แบบกระจายตลอดปี
 for (let m = 3; m <= 12; m++) {
@@ -209,94 +272,108 @@ function renderOrderStatus(status) {
 
 // ==================== RENDER CHART (Recharts) ===================
 function renderChart(filteredOrders) {
-  // สร้างข้อมูลยอดขายรวมแต่ละเดือน
-  let monthlyData = [];
+  // 1. เตรียม monthly data
+  let monthlyTotals = [];
   for (let m = 1; m <= 12; m++) {
-    let monthOrders = filteredOrders.filter(
-      (o) => new Date(o.date).getMonth() + 1 === m
-    );
-    let total = 0;
-    monthOrders.forEach((o) => (total += o.total));
-    monthlyData.push({
-      month: `${m}`,
-      total: total,
-    });
+    let total = filteredOrders
+      .filter((o) => new Date(o.date).getMonth() + 1 === m)
+      .reduce((sum, o) => sum + o.total, 0);
+    monthlyTotals.push(total);
   }
-  // กำหนดค่า render ด้วย React+Recharts
-  const {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-  } = window.Recharts;
-  function ChartComponent() {
-    return React.createElement(
-      ResponsiveContainer,
-      { width: "100%", height: 300 },
-      React.createElement(
-        LineChart,
+
+  // 2. ลบกราฟเก่าถ้ามี
+  if (window.salesChartObj) {
+    window.salesChartObj.destroy();
+  }
+
+  const ctx = document.getElementById("salesChart").getContext("2d");
+
+  // 3. สร้าง gradient ไล่สีฟ้า
+  const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, "rgba(13,110,253,0.25)");
+  gradient.addColorStop(1, "rgba(13,110,253,0.04)");
+
+  // 4. Render chart
+  window.salesChartObj = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [
+        "ม.ค.",
+        "ก.พ.",
+        "มี.ค.",
+        "เม.ย.",
+        "พ.ค.",
+        "มิ.ย.",
+        "ก.ค.",
+        "ส.ค.",
+        "ก.ย.",
+        "ต.ค.",
+        "พ.ย.",
+        "ธ.ค.",
+      ],
+      datasets: [
         {
-          data: monthlyData,
-          margin: { top: 20, right: 10, left: 0, bottom: 0 },
+          label: "ยอดขาย (บาท)",
+          data: monthlyTotals,
+          borderColor: "#0d6efd",
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 6,
+          pointBackgroundColor: "#fff",
+          pointBorderColor: "#0d6efd",
+          pointHoverRadius: 9,
+          pointHoverBorderWidth: 2,
+          pointHoverBackgroundColor: "#0d6efd",
+          pointHoverBorderColor: "#fff",
         },
-        React.createElement(CartesianGrid, { strokeDasharray: "3 3" }),
-        React.createElement(XAxis, {
-          dataKey: "month",
-          tickFormatter: (m) =>
-            [
-              "ม.ค.",
-              "ก.พ.",
-              "มี.ค.",
-              "เม.ย.",
-              "พ.ค.",
-              "มิ.ย.",
-              "ก.ค.",
-              "ส.ค.",
-              "ก.ย.",
-              "ต.ค.",
-              "พ.ย.",
-              "ธ.ค.",
-            ][parseInt(m) - 1],
-        }),
-        React.createElement(YAxis, {
-          tickFormatter: (v) => v.toLocaleString(),
-        }),
-        React.createElement(Tooltip, {
-          formatter: (v) => "฿" + v.toLocaleString(),
-          labelFormatter: (l) =>
-            "เดือน " +
-            [
-              "ม.ค.",
-              "ก.พ.",
-              "มี.ค.",
-              "เม.ย.",
-              "พ.ค.",
-              "มิ.ย.",
-              "ก.ค.",
-              "ส.ค.",
-              "ก.ย.",
-              "ต.ค.",
-              "พ.ย.",
-              "ธ.ค.",
-            ][parseInt(l) - 1],
-        }),
-        React.createElement(Line, {
-          type: "monotone",
-          dataKey: "total",
-          stroke: "#0d6efd",
-          strokeWidth: 3,
-          dot: true,
-        })
-      )
-    );
-  }
-  ReactDOM.render(
-    React.createElement(ChartComponent),
-    document.getElementById("chartContainer")
-  );
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#fff",
+          titleColor: "#0d6efd",
+          bodyColor: "#212529",
+          borderColor: "#dee2e6",
+          borderWidth: 1,
+          cornerRadius: 8,
+          padding: 10,
+          displayColors: false,
+          callbacks: {
+            label: function (context) {
+              return "ยอดขาย: ฿" + context.parsed.y.toLocaleString();
+            },
+          },
+        },
+      },
+      layout: {
+        padding: { left: 8, right: 8, top: 0, bottom: 8 },
+      },
+      scales: {
+        x: {
+          grid: { color: "rgba(0,0,0,0.06)" },
+          ticks: {
+            font: { size: 14, family: "Prompt, 'Noto Sans Thai', sans-serif" },
+            color: "#666",
+          },
+        },
+        y: {
+          grid: { color: "rgba(0,0,0,0.06)" },
+          ticks: {
+            font: { size: 15, weight: "bold" },
+            color: "#222",
+            callback: function (value) {
+              return "฿" + value.toLocaleString();
+            },
+          },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
 }
 
 // ===================== LOGOUT ========================

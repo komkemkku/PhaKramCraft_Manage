@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการช่องทางการชำระเงิน - ระบบจัดการหลังบ้าน</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/payment_methods.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <nav class="sidebar bg-dark text-white px-2 py-4 d-flex flex-column">
+            <a href="dashboard.html"
+                class="sidebar-brand mb-4 d-flex align-items-center text-decoration-none text-white">
+                <i class="bi bi-shop fs-2 me-2"></i>
+                <span class="fs-5 fw-bold">ผ้าคราม BACKOFFICE</span>
+            </a>
+            <ul class="nav flex-column sidebar-nav">
+                <li class="nav-item mb-1">
+                    <a class="nav-link" href="dashboard.html"><i class="bi bi-speedometer2 me-2"></i> ภาพรวมการขาย</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link" href="products.html"><i class="bi bi-box-seam me-2"></i> จัดการสินค้า</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link" href="categories.html"><i class="bi bi-tags me-2"></i> จัดการประเภทสินค้า</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link" href="users.html"><i class="bi bi-people me-2"></i> จัดการผู้ใช้งาน</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link" href="owners.html"><i class="bi bi-person-badge me-2"></i>
+                        จัดการเจ้าของสินค้า</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link" href="admin.html"><i class="bi bi-person-gear me-2"></i> จัดการผู้ดูแลระบบ</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link" href="orders.html"><i class="bi bi-receipt me-2"></i> จัดการคำสั่งซื้อ</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link active" href="payment_methods.html"><i class="bi bi-wallet2 me-2"></i>
+                        ช่องทางการชำระเงิน</a>
+                </li>
+                <li class="nav-item mt-4">
+                    <a class="nav-link" href="logs.html"><i class="bi bi-clock-history me-2"></i>
+                        เก็บประวัติการใช้งาน</a>
+                </li>
+            </ul>
+            <div class="mt-auto pt-4">
+                <button class="btn btn-outline-light w-100" id="logoutBtn"><i class="bi bi-box-arrow-right me-2"></i>
+                    ออกจากระบบ</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-grow-1 p-4 main-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold mb-0">จัดการช่องทางการชำระเงิน</h2>
+                <button class="btn btn-primary px-4" id="btnAddPayment"><i class="bi bi-plus-lg me-1"></i>
+                    เพิ่มช่องทาง</button>
+            </div>
+            <div class="row" id="paymentMethodsContainer">
+                <!-- JS render cards here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add/Edit Payment Method -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form class="modal-content" id="paymentForm" autocomplete="off">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentModalTitle">เพิ่มช่องทาง</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="paymentId">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4 text-center">
+                            <label class="form-label">QR Code (อัปโหลด JPG/PNG)</label>
+                            <div id="qrPreview" class="mb-2"></div>
+                            <input type="file" id="paymentQR" class="form-control" accept="image/*">
+                            <div class="form-text text-danger small">* รูป QR code ชำระเงิน</div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <label for="paymentAccount" class="form-label">ชื่อบัญชี</label>
+                                <input type="text" class="form-control" id="paymentAccount" required>
+                            </div>
+                            <div class="mb-2">
+                                <label for="paymentBank" class="form-label">ชื่อธนาคาร</label>
+                                <input type="text" class="form-control" id="paymentBank" required>
+                            </div>
+                            <div class="mb-2">
+                                <label for="paymentNumber" class="form-label">หมายเลขบัญชี</label>
+                                <input type="text" class="form-control" id="paymentNumber" required>
+                            </div>
+                            <div class="mb-2">
+                                <label for="paymentBranch" class="form-label">สาขา</label>
+                                <input type="text" class="form-control" id="paymentBranch">
+                            </div>
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="paymentActive">
+                                <label class="form-check-label fw-semibold" for="paymentActive">
+                                    แสดงบัญชีนี้ให้ลูกค้า (บัญชีหลัก)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="formError" class="alert alert-danger d-none py-2 mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm Delete Payment Method -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i> ยืนยันการลบช่องทาง</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">คุณต้องการลบช่องทางนี้ใช่หรือไม่?<br>
+                        <span id="deletePaymentName" class="fw-bold text-danger"></span>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">ลบ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/payment_methods.js"></script>
+</body>
+
+</html>
