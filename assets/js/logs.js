@@ -1,135 +1,89 @@
-// ========== MOCK DATA ==========
-let logs = [
-  {
-    id: 1,
-    datetime: "2024-06-12 09:01:20",
-    user: "admin",
-    action: "login",
-    detail: "เข้าสู่ระบบสำเร็จ",
-  },
-  {
-    id: 2,
-    datetime: "2024-06-12 09:10:35",
-    user: "admin",
-    action: "add",
-    detail: "เพิ่มสินค้า: ผ้าพันคอคราม",
-  },
-  {
-    id: 3,
-    datetime: "2024-06-12 09:12:10",
-    user: "staff1",
-    action: "edit",
-    detail: "แก้ไขราคา: ผ้าพันคอคราม",
-  },
-  {
-    id: 4,
-    datetime: "2024-06-12 09:13:41",
-    user: "admin",
-    action: "delete",
-    detail: "ลบผู้ใช้งาน: viewer",
-  },
-  {
-    id: 5,
-    datetime: "2024-06-12 09:30:20",
-    user: "admin",
-    action: "logout",
-    detail: "ออกจากระบบ",
-  },
-  {
-    id: 6,
-    datetime: "2024-06-13 10:00:00",
-    user: "viewer",
-    action: "login",
-    detail: "เข้าสู่ระบบสำเร็จ",
-  },
-  {
-    id: 7,
-    datetime: "2024-06-13 10:01:00",
-    user: "viewer",
-    action: "logout",
-    detail: "ออกจากระบบ",
-  },
-  {
-    id: 8,
-    datetime: "2024-06-13 10:30:40",
-    user: "admin",
-    action: "add",
-    detail: "เพิ่มประเภท: เสื้อ",
-  },
-  {
-    id: 9,
-    datetime: "2024-06-13 11:00:20",
-    user: "staff1",
-    action: "edit",
-    detail: "แก้ไขอีเมล: staff1@example.com",
-  },
-];
-// เพิ่ม mock ให้ดูมีหลายรายการ
-for (let i = 10; i <= 55; i++) {
-  logs.push({
-    id: i,
-    datetime: `2024-06-14 1${Math.floor(i / 5)}:${(i % 60)
-      .toString()
-      .padStart(2, "0")}:00`,
-    user: i % 3 === 0 ? "admin" : i % 3 === 1 ? "staff1" : "viewer",
-    action: ["add", "edit", "delete", "login", "logout"][i % 5],
-    detail: `Mock log #${i}`,
-  });
-}
+const API_BASE = "http://localhost:3000/logs";
 
+let logs = [];
+let logTotalPages = 1;
+let logCurrentPage = 1;
+const logPerPage = 20;
+
+// SELECTOR
 const logTableBody = document.getElementById("logTableBody");
 const searchLogInput = document.getElementById("searchLogInput");
 const filterAction = document.getElementById("filterAction");
 const filterDate = document.getElementById("filterDate");
 const pagination = document.getElementById("logPagination");
 
-let logCurrentPage = 1;
-const logPerPage = 10;
+// ========== Auth header helper ==========
+function getAuthHeaders() {
+  const token = localStorage.getItem("jwt_token");
+  return token ? { Authorization: "Bearer " + token } : {};
+}
+
+// ========== ดึงข้อมูลจาก API ==========
+async function fetchLogsFromApi() {
+  const keyword = (searchLogInput.value || "").trim();
+  const action = filterAction.value;
+  const date = filterDate.value;
+
+  let query = `?page=${logCurrentPage}&limit=${logPerPage}`;
+  if (keyword) query += `&search=${encodeURIComponent(keyword)}`;
+  if (action) query += `&action=${encodeURIComponent(action)}`;
+  if (date) query += `&date=${encodeURIComponent(date)}`;
+
+  const res = await fetch(API_BASE + query, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    logs = [];
+    logTotalPages = 1;
+    renderLogs();
+    return;
+  }
+  const data = await res.json();
+  // mapping log ให้ field ชื่อตรงกับที่ใช้ render
+  if (Array.isArray(data)) {
+    logs = data.map(mapLog);
+    logTotalPages = 1;
+  } else {
+    logs = (data.logs || []).map(mapLog);
+    logTotalPages = data.totalPages || 1;
+  }
+  renderLogs();
+}
+
+// ========== MAP LOG FIELD ==========
+function mapLog(log) {
+  // user: แสดงชื่อ admin หรือ user ที่ทำ action
+  return {
+    datetime: log.created_at || log.datetime || "",
+    user: log.adminname || log.username || "-",
+    action: log.action || "",
+    detail: log.description || log.detail || "",
+  };
+}
 
 // ========== RENDER ==========
 function renderLogs() {
-  // Filter logs
-  let filtered = logs.filter((log) => {
-    // search keyword
-    const keyword = (searchLogInput.value || "").trim().toLowerCase();
-    let matchKeyword = true;
-    if (keyword) {
-      matchKeyword =
-        (log.user && log.user.toLowerCase().includes(keyword)) ||
-        (log.detail && log.detail.toLowerCase().includes(keyword));
-    }
-    // filter action
-    let matchAction = !filterAction.value || log.action === filterAction.value;
-    // filter date
-    let matchDate =
-      !filterDate.value || log.datetime.startsWith(filterDate.value);
-    return matchKeyword && matchAction && matchDate;
-  });
-
-  // pagination
-  const totalPages = Math.ceil(filtered.length / logPerPage);
-  if (logCurrentPage > totalPages) logCurrentPage = 1;
-  const start = (logCurrentPage - 1) * logPerPage;
-  const pageLogs = filtered.slice(start, start + logPerPage);
-
   logTableBody.innerHTML = "";
-  pageLogs.forEach((log) => {
-    logTableBody.innerHTML += `
-            <tr>
-                <td>${log.datetime}</td>
-                <td>${log.user}</td>
-                <td>
-                    ${renderLogAction(log.action)}
-                </td>
-                <td>${log.detail}</td>
-            </tr>
-        `;
-  });
-
-  renderPagination(totalPages);
+  if (!logs.length) {
+    logTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ไม่มีข้อมูล</td></tr>`;
+  } else {
+    logs.forEach((log) => {
+      logTableBody.innerHTML += `
+        <tr>
+          <td>${log.datetime}</td>
+          <td>${log.user}</td>
+          <td>
+            ${renderLogAction(log.action)}
+          </td>
+          <td>${log.detail}</td>
+        </tr>
+      `;
+    });
+  }
+  renderPagination(logTotalPages);
 }
+
 function renderLogAction(action) {
-  // ไอคอนและสีแต่ละ type
   const map = {
     login: {
       icon: "bi-box-arrow-in-right",
@@ -151,34 +105,33 @@ function renderLogAction(action) {
   return action;
 }
 
-// ========== PAGINATION ==========
 function renderPagination(totalPages) {
   pagination.innerHTML = "";
   if (totalPages <= 1) return;
   for (let i = 1; i <= totalPages; i++) {
     pagination.innerHTML += `
-        <li class="page-item ${logCurrentPage === i ? "active" : ""}">
-            <button class="page-link" onclick="gotoLogPage(${i})">${i}</button>
-        </li>`;
+      <li class="page-item ${logCurrentPage === i ? "active" : ""}">
+        <button class="page-link" onclick="gotoLogPage(${i})">${i}</button>
+      </li>`;
   }
 }
 window.gotoLogPage = function (page) {
   logCurrentPage = page;
-  renderLogs();
+  fetchLogsFromApi();
 };
 
-// ========== FILTERS ==========
+// ========== FILTER/EVENT ==========
 searchLogInput.addEventListener("input", () => {
   logCurrentPage = 1;
-  renderLogs();
+  fetchLogsFromApi();
 });
 filterAction.addEventListener("change", () => {
   logCurrentPage = 1;
-  renderLogs();
+  fetchLogsFromApi();
 });
 filterDate.addEventListener("change", () => {
   logCurrentPage = 1;
-  renderLogs();
+  fetchLogsFromApi();
 });
 
 // ========== EXPORT ==========
@@ -208,4 +161,4 @@ document.getElementById("logoutBtn").addEventListener("click", function () {
 });
 
 // ========== INIT ==========
-renderLogs();
+fetchLogsFromApi();

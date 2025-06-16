@@ -1,24 +1,6 @@
-// ------- MOCK DATA ---------
-let paymentMethods = [
-  {
-    id: 1,
-    qr: "https://cdn.pixabay.com/photo/2016/04/01/11/56/qrcode-1295901_1280.png",
-    account: "ร้านผ้าคราม วิสาหกิจ",
-    bank: "กสิกรไทย",
-    number: "123-4-56789-0",
-    branch: "สาขาโลตัสพะเยา",
-    active: true,
-  },
-  {
-    id: 2,
-    qr: "",
-    account: "คุณสมพร ใจดี",
-    bank: "กรุงไทย",
-    number: "987-6-54321-1",
-    branch: "สาขาเมืองพะเยา",
-    active: false,
-  },
-];
+const API_BASE = "http://localhost:3000/paymentsystems";
+
+let paymentMethods = [];
 
 const paymentMethodsContainer = document.getElementById(
   "paymentMethodsContainer"
@@ -37,6 +19,11 @@ let editPaymentId = null;
 let qrFileData = "";
 
 // ------- RENDER FUNCTION ---------
+async function fetchPaymentMethods() {
+  const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+  paymentMethods = await res.json();
+  renderPaymentMethods();
+}
 function renderPaymentMethods() {
   paymentMethodsContainer.innerHTML = "";
   if (paymentMethods.length === 0) {
@@ -45,64 +32,61 @@ function renderPaymentMethods() {
   }
   paymentMethods.forEach((pm) => {
     paymentMethodsContainer.innerHTML += `
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card payment-card h-100 shadow-sm ${
-                  pm.active ? "active-account" : ""
-                }">
-                    <div class="card-body d-flex flex-column align-items-center text-center">
-                        <div class="mb-2">
-                            ${
-                              pm.qr
-                                ? `<img src="${pm.qr}" class="qr-thumb">`
-                                : `<div class="qr-thumb d-flex align-items-center justify-content-center text-muted"><i class="bi bi-image fs-3"></i></div>`
-                            }
-                        </div>
-                        ${
-                          pm.active
-                            ? `<div class="account-label mb-1"><i class="bi bi-eye-fill"></i> บัญชีหลักที่ลูกค้าเห็น</div>`
-                            : ""
-                        }
-                        <div class="bank-title mb-1"><i class="bi bi-bank2 me-1"></i> ${
-                          pm.bank
-                        }</div>
-                        <div class="mb-1"><b>ชื่อบัญชี:</b> ${pm.account}</div>
-                        <div class="mb-1"><span class="account-number">${
-                          pm.number
-                        }</span></div>
-                        <div class="mb-1"><small class="text-muted">สาขา: ${
-                          pm.branch || "-"
-                        }</small></div>
-                        <div class="form-check form-switch mt-2 mb-2">
-                            <input class="form-check-input" type="checkbox" id="toggleActive${
-                              pm.id
-                            }" ${
-      pm.active ? "checked" : ""
-    } onchange="togglePaymentActive(${pm.id})">
-                            <label class="form-check-label small" for="toggleActive${
-                              pm.id
-                            }">
-                                แสดงบัญชีนี้ให้ลูกค้า
-                            </label>
-                        </div>
-                        <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-sm btn-outline-info" onclick="editPayment(${
-                              pm.id
-                            })"><i class="bi bi-pencil"></i> แก้ไข</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deletePayment(${
-                              pm.id
-                            })"><i class="bi bi-trash"></i> ลบ</button>
-                        </div>
-                    </div>
-                </div>
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card payment-card h-100 shadow-sm ${
+          pm.is_active ? "active-account" : ""
+        }">
+          <div class="card-body d-flex flex-column align-items-center text-center">
+            <div class="mb-2">
+              ${
+                pm.qrCode
+                  ? `<img src="${pm.qrCode}" class="qr-thumb">`
+                  : `<div class="qr-thumb d-flex align-items-center justify-content-center text-muted"><i class="bi bi-image fs-3"></i></div>`
+              }
             </div>
-        `;
+            ${
+              pm.is_active
+                ? `<div class="account-label mb-1"><i class="bi bi-eye-fill"></i> บัญชีหลักที่ลูกค้าเห็น</div>`
+                : ""
+            }
+            <div class="bank-title mb-1"><i class="bi bi-bank2 me-1"></i> ${
+              pm.name_bank
+            }</div>
+            <div class="mb-1"><b>ชื่อบัญชี:</b> ${pm.name_account}</div>
+            <div class="mb-1"><span class="account-number">${
+              pm.number_account
+            }</span></div>
+            <div class="mb-1"><small class="text-muted">สาขา: ${
+              pm.name_branch || "-"
+            }</small></div>
+            <div class="form-check form-switch mt-2 mb-2">
+              <input class="form-check-input" type="checkbox" id="toggleActive${
+                pm.id
+              }"
+                ${pm.is_active ? "checked" : ""}
+                onchange="togglePaymentActive(${pm.id}, this.checked)">
+              <label class="form-check-label small" for="toggleActive${pm.id}">
+                แสดงบัญชีนี้ให้ลูกค้า
+              </label>
+            </div>
+            <div class="d-flex gap-2 mt-2">
+              <button class="btn btn-sm btn-outline-info" onclick="editPayment(${
+                pm.id
+              })"><i class="bi bi-pencil"></i> แก้ไข</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deletePayment(${
+                pm.id
+              })"><i class="bi bi-trash"></i> ลบ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   });
 }
 window.renderPaymentMethods = renderPaymentMethods;
 
 // ------- ADD / EDIT PAYMENT ---------
 btnAddPayment.addEventListener("click", () => openPaymentModal());
-
 function openPaymentModal(payment = null) {
   paymentForm.reset();
   paymentFormError.classList.add("d-none");
@@ -112,15 +96,15 @@ function openPaymentModal(payment = null) {
   if (payment) {
     document.getElementById("paymentModalTitle").textContent = "แก้ไขช่องทาง";
     document.getElementById("paymentId").value = payment.id;
-    document.getElementById("paymentAccount").value = payment.account;
-    document.getElementById("paymentBank").value = payment.bank;
-    document.getElementById("paymentNumber").value = payment.number;
-    document.getElementById("paymentBranch").value = payment.branch;
-    qrFileData = payment.qr || "";
+    document.getElementById("paymentAccount").value = payment.name_account;
+    document.getElementById("paymentBank").value = payment.name_bank;
+    document.getElementById("paymentNumber").value = payment.number_account;
+    document.getElementById("paymentBranch").value = payment.name_branch;
+    qrFileData = payment.qrCode || "";
     if (qrFileData) {
       qrPreview.innerHTML = `<img src="${qrFileData}" class="qr-thumb mb-2">`;
     }
-    paymentActiveInput.checked = !!payment.active;
+    paymentActiveInput.checked = !!payment.is_active;
     editPaymentId = payment.id;
   } else {
     document.getElementById("paymentModalTitle").textContent = "เพิ่มช่องทาง";
@@ -145,44 +129,52 @@ qrInput.addEventListener("change", function (e) {
 });
 
 // ------- SUBMIT FORM -------
-paymentForm.onsubmit = function (e) {
+paymentForm.onsubmit = async function (e) {
   e.preventDefault();
-  const account = document.getElementById("paymentAccount").value.trim();
-  const bank = document.getElementById("paymentBank").value.trim();
-  const number = document.getElementById("paymentNumber").value.trim();
-  const branch = document.getElementById("paymentBranch").value.trim();
-  const active = paymentActiveInput.checked;
-  if (!account || !bank || !number) {
+  const name_account = document.getElementById("paymentAccount").value.trim();
+  const name_bank = document.getElementById("paymentBank").value.trim();
+  const number_account = document.getElementById("paymentNumber").value.trim();
+  const name_branch = document.getElementById("paymentBranch").value.trim();
+  const is_active = paymentActiveInput.checked;
+  if (!name_account || !name_bank || !number_account) {
     showFormError("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน");
     return;
   }
-  // ให้แอคทีฟได้ทีละ 1 บัญชี (ถ้าเช็ค active)
-  if (active) {
-    paymentMethods.forEach((pm) => (pm.active = false));
-  }
+
+  // ส่ง is_active ออกไปให้ backend
   const paymentData = {
-    account,
-    bank,
-    number,
-    branch,
-    qr: qrFileData,
-    active,
+    name_account,
+    name_bank,
+    number_account,
+    name_branch,
+    qrCode: qrFileData,
+    is_active,
   };
-  if (editPaymentId) {
+
+  const id = document.getElementById("paymentId").value;
+  let res;
+  if (id) {
     // Edit
-    const idx = paymentMethods.findIndex((pm) => pm.id === editPaymentId);
-    if (idx > -1) {
-      paymentMethods[idx] = { ...paymentMethods[idx], ...paymentData };
-    }
+    res = await fetch(`${API_BASE}/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify(paymentData),
+    });
   } else {
     // Add
-    const newId = paymentMethods.length
-      ? Math.max(...paymentMethods.map((pm) => pm.id)) + 1
-      : 1;
-    paymentMethods.push({ id: newId, ...paymentData });
+    res = await fetch(API_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify(paymentData),
+    });
   }
-  paymentModal.hide();
-  renderPaymentMethods();
+  if (res.ok) {
+    await fetchPaymentMethods();
+    paymentModal.hide();
+  } else {
+    const error = await res.json();
+    showFormError(error.error || "เกิดข้อผิดพลาด");
+  }
 };
 
 function showFormError(msg) {
@@ -198,15 +190,18 @@ window.deletePayment = function (id) {
   if (!pm) return;
   deletePaymentId = id;
   document.getElementById("deletePaymentName").textContent =
-    pm.bank + " - " + pm.account;
+    pm.name_bank + " - " + pm.name_account;
   new bootstrap.Modal(document.getElementById("confirmDeleteModal")).show();
 };
 document
   .getElementById("confirmDeleteBtn")
-  .addEventListener("click", function () {
+  .addEventListener("click", async function () {
     if (deletePaymentId !== null) {
-      paymentMethods = paymentMethods.filter((pm) => pm.id !== deletePaymentId);
-      renderPaymentMethods();
+      await fetch(`${API_BASE}/${deletePaymentId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      await fetchPaymentMethods();
       deletePaymentId = null;
     }
     bootstrap.Modal.getInstance(
@@ -215,18 +210,20 @@ document
   });
 
 // ------- EDIT PAYMENT --------
-window.editPayment = function (id) {
+window.editPayment = async function (id) {
   const pm = paymentMethods.find((x) => x.id === id);
   if (pm) openPaymentModal(pm);
 };
 
 // ------- TOGGLE ACTIVE ACCOUNT --------
-window.togglePaymentActive = function (id) {
-  // ให้แอคทีฟได้ทีละ 1 บัญชี
-  paymentMethods.forEach((pm) => (pm.active = false));
-  const pm = paymentMethods.find((x) => x.id === id);
-  if (pm) pm.active = true;
-  renderPaymentMethods();
+window.togglePaymentActive = async function (id, checked) {
+  // ส่ง PATCH ไปหา API (active ได้ทีละ 1 อัน)
+  await fetch(`${API_BASE}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ is_active: checked }),
+  });
+  await fetchPaymentMethods();
 };
 
 // ------- LOGOUT ---------
@@ -236,4 +233,9 @@ document.getElementById("logoutBtn").addEventListener("click", function () {
 });
 
 // ------- INIT ---------
-renderPaymentMethods();
+fetchPaymentMethods();
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("jwt_token");
+  return token ? { Authorization: "Bearer " + token } : {};
+}
