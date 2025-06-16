@@ -1,31 +1,17 @@
-// ========== MOCK DATA ==========
-// หมวดหมู่
-let categories = [
-  {
-    id: 1,
-    name: "ผ้าพันคอ",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=200",
-  },
-  {
-    id: 2,
-    name: "เสื้อ",
-    image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=200",
-  },
-  {
-    id: 3,
-    name: "กระเป๋า",
-    image: "https://images.unsplash.com/photo-1464983953574-0892a716854b?w=200",
-  },
-];
-// สินค้า (เพื่อรวมจำนวนสินค้าแต่ละประเภท)
-let products = [
-  { id: 1, name: "ผ้าครามลายดอกไม้", category: "ผ้าพันคอ" },
-  { id: 2, name: "ผ้าครามสีธรรมชาติ", category: "เสื้อ" },
-  { id: 3, name: "กระเป๋าครามย้อมมือ", category: "กระเป๋า" },
-  { id: 4, name: "ผ้าครามแฟชั่น", category: "ผ้าพันคอ" },
-];
+// ========== API BASE ==========
+const API_BASE = "http://localhost:3000/categories"; // เปลี่ยนเป็น endpoint ที่ถูกต้อง
 
+function getAuthHeaders() {
+  const token = localStorage.getItem("jwt_token");
+  return token ? { Authorization: "Bearer " + token } : {};
+}
+
+// ========== GLOBAL STATE ==========
+let categories = []; // เก็บ list จาก backend
 let searchCategoryKeyword = "";
+let editCategoryId = null;
+let tempCategoryImage = "";
+let deleteCategoryId = null;
 
 // ========== SELECTOR ==========
 const categoryTableBody = document.getElementById("categoryTableBody");
@@ -36,46 +22,50 @@ const categoryForm = document.getElementById("categoryForm");
 const categoryImageInput = document.getElementById("categoryImage");
 const categoryImagePreview = document.getElementById("categoryImagePreview");
 const categoryFormError = document.getElementById("categoryFormError");
-let editCategoryId = null;
-let tempCategoryImage = "";
 
 // ========== RENDER ==========
-function renderCategories() {
+async function renderCategories() {
   const keyword = searchCategoryKeyword.trim().toLowerCase();
+
+  // ดึงข้อมูลจาก API
+  const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+  if (res.status === 401) {
+    // หมด session, redirect login
+    window.location.href = "/index.html";
+    return;
+  }
+  categories = await res.json();
+
+  // Filter ด้วย keyword
   const filteredCategories = categories.filter((category) =>
     category.name.toLowerCase().includes(keyword)
   );
+
   categoryTableBody.innerHTML = "";
   filteredCategories.forEach((category) => {
-    // นับจำนวนสินค้าในประเภทนี้
-    const productCount = products.filter(
-      (p) => p.category === category.name
-    ).length;
     categoryTableBody.innerHTML += `
-            <tr>
-                <td>
-                    <img src="${
-                      category.image || ""
-                    }" class="img-category-thumb" alt="">
-                </td>
-                <td>${category.name}</td>
-                <td>${productCount} รายการ</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-info" onclick="editCategory(${
-                      category.id
-                    })">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${
-                      category.id
-                    })">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
+      <tr>
+        <td>
+          <img src="${category.image || ""}" class="img-category-thumb" alt="">
+        </td>
+        <td>${category.name}</td>
+        <td>${category.count ?? 0} รายการ</td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-info" onclick="editCategory(${
+            category.id
+          })">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${
+            category.id
+          })">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
   });
 }
 window.renderCategories = renderCategories;
@@ -134,13 +124,13 @@ function renderCategoryImagePreview() {
   categoryImagePreview.innerHTML = "";
   if (tempCategoryImage) {
     categoryImagePreview.innerHTML = `
-            <div class="position-relative d-inline-block">
-                <img src="${tempCategoryImage}" class="img-category-preview" alt="">
-                <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 translate-middle"
-                    style="width: 20px; height: 20px; font-size: 10px; line-height: 10px;" 
-                    onclick="removeCategoryImage()">&times;</button>
-            </div>
-        `;
+      <div class="position-relative d-inline-block">
+        <img src="${tempCategoryImage}" class="img-category-preview" alt="">
+        <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 translate-middle"
+          style="width: 20px; height: 20px; font-size: 10px; line-height: 10px;" 
+          onclick="removeCategoryImage()">&times;</button>
+      </div>
+    `;
   }
 }
 window.removeCategoryImage = function () {
@@ -149,8 +139,8 @@ window.removeCategoryImage = function () {
   categoryImageInput.value = "";
 };
 
-// ========== SAVE ==========
-categoryForm.onsubmit = function (e) {
+// ========== SAVE (ADD/EDIT) ==========
+categoryForm.onsubmit = async function (e) {
   e.preventDefault();
   const id = document.getElementById("categoryId").value;
   const name = document.getElementById("categoryName").value.trim();
@@ -160,25 +150,43 @@ categoryForm.onsubmit = function (e) {
     return;
   }
   categoryFormError.classList.add("d-none");
+
+  const data = { name, image: tempCategoryImage };
+  let res;
   if (id) {
-    // แก้ไข
-    const index = categories.findIndex((c) => c.id == id);
-    if (index > -1) {
-      categories[index] = { id: Number(id), name, image: tempCategoryImage };
-    }
+    // PATCH
+    res = await fetch(`${API_BASE}/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(data),
+    });
   } else {
-    // เพิ่ม
-    const newId = categories.length
-      ? Math.max(...categories.map((c) => c.id)) + 1
-      : 1;
-    categories.push({ id: newId, name, image: tempCategoryImage });
+    // POST
+    res = await fetch(API_BASE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(data),
+    });
   }
-  renderCategories();
-  categoryModal.hide();
+  if (res.ok) {
+    await renderCategories();
+    categoryModal.hide();
+  } else if (res.status === 401) {
+    window.location.href = "/index.html";
+  } else {
+    const error = await res.json();
+    categoryFormError.textContent = error.error || "เกิดข้อผิดพลาด";
+    categoryFormError.classList.remove("d-none");
+  }
 };
 
 // ========== DELETE ==========
-let deleteCategoryId = null;
 window.deleteCategory = function (id) {
   const category = categories.find((c) => c.id === id);
   if (!category) return;
@@ -190,10 +198,17 @@ window.deleteCategory = function (id) {
 };
 document
   .getElementById("confirmDeleteCategoryBtn")
-  .addEventListener("click", function () {
+  .addEventListener("click", async function () {
     if (deleteCategoryId !== null) {
-      categories = categories.filter((c) => c.id !== deleteCategoryId);
-      renderCategories();
+      const res = await fetch(`${API_BASE}/${deleteCategoryId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        await renderCategories();
+      } else if (res.status === 401) {
+        window.location.href = "/index.html";
+      }
       deleteCategoryId = null;
     }
     bootstrap.Modal.getInstance(
@@ -202,10 +217,16 @@ document
   });
 
 // ========== EDIT ==========
-window.editCategory = function (id) {
-  const category = categories.find((c) => c.id === id);
-  if (category) {
+window.editCategory = async function (id) {
+  // GET /categories/:id เพื่อ preload ใน modal
+  const res = await fetch(`${API_BASE}/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  if (res.ok) {
+    const category = await res.json();
     openCategoryModal(category);
+  } else if (res.status === 401) {
+    window.location.href = "/index.html";
   }
 };
 

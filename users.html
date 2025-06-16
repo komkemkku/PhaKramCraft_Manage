@@ -78,8 +78,11 @@
                         <table class="table align-middle table-hover mb-0">
                             <thead>
                                 <tr>
+                                    <th>ชื่อจริง</th>
+                                    <th>นามสกุล</th>
                                     <th>ชื่อผู้ใช้งาน</th>
                                     <th>อีเมล</th>
+                                    <th>เบอร์โทรศัพท์</th>
                                     <th>สิทธิ์</th>
                                     <th class="text-center">แก้ไข</th>
                                     <th class="text-center">ลบ</th>
@@ -104,6 +107,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="userFirstname" class="form-label">ชื่อจริง</label>
+                        <input type="text" class="form-control" id="userFirstname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userLastname" class="form-label">นามสกุล</label>
+                        <input type="text" class="form-control" id="userLastname" required>
+                    </div>
                     <input type="hidden" id="userId">
                     <div class="mb-3">
                         <label for="userName" class="form-label">ชื่อผู้ใช้งาน</label>
@@ -114,13 +125,24 @@
                         <input type="email" class="form-control" id="userEmail" required>
                     </div>
                     <div class="mb-3">
-                        <label for="userRole" class="form-label">สิทธิ์</label>
-                        <select class="form-select" id="userRole">
-                            <option value="Admin">Admin</option>
-                            <option value="พนักงาน">พนักงาน</option>
-                            <option value="ผู้ชม">ผู้ชม</option>
-                        </select>
+                        <label for="userPhone" class="form-label">เบอร์โทรศัพท์</label>
+                        <input type="text" class="form-control" id="userPhone" maxlength="20" pattern="[0-9\-]+"
+                            placeholder="08x-xxx-xxxx" required>
                     </div>
+                    <div class="mb-3" id="passwordInputGroup">
+                        <label for="userPassword" class="form-label">รหัสผ่าน</label>
+                        <input type="password" class="form-control" id="userPassword" autocomplete="new-password"
+                            minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร">
+                    </div>
+
+
+                    <div class="mb-3">
+                        <label for="userRole" class="form-label">สิทธิ์</label>
+                        <div id="userRole" class="form-control" style="background-color: #e9ecef;" readonly>
+                            ผู้ชม
+                        </div>
+                    </div>
+
                     <div id="userFormError" class="alert alert-danger d-none py-2"></div>
                 </div>
                 <div class="modal-footer">

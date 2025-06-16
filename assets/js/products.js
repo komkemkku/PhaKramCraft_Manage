@@ -1,147 +1,214 @@
-// -------- MOCK DATA ---------
-let categories = [
-  { id: 1, name: "ผ้าพันคอ" },
-  { id: 2, name: "เสื้อ" },
-  { id: 3, name: "กระเป๋า" },
-];
+const API_BASE = "http://localhost:3000/products";
+const CATEGORY_API = "http://localhost:3000/categories";
 
-let products = [
-  {
-    id: 1,
-    name: "ผ้าพันคอคราม",
-    category: "ผ้าพันคอ",
-    cost: 120,
-    price: 180,
-    profitPercent: 50,
-    status: "แสดง",
-    images: [],
-    visible: true,
-  },
-  {
-    id: 2,
-    name: "เสื้อคราม",
-    category: "เสื้อ",
-    cost: 250,
-    price: 350,
-    profitPercent: 40,
-    status: "แสดง",
-    images: [],
-    visible: true,
-  },
-];
+function getAuthHeaders() {
+  const token = localStorage.getItem("jwt_token");
+  return token ? { Authorization: "Bearer " + token } : {};
+}
 
-// -------------- RENDER ---------------
-const productTableBody = document.getElementById("productTableBody");
-const searchProductInput = document.getElementById("searchProductInput");
+let products = [];
+let categories = [];
 let searchProductKeyword = "";
+let editProductId = null;
+let tempProductImages = [];
+let deleteProductId = null;
 
-// ----------- Render Category options in Modal -----------
-const categorySelect = document.getElementById("productCategory");
-function renderCategoryOptions() {
-  categorySelect.innerHTML = '<option value="">เลือกประเภทสินค้า</option>';
-  categories.forEach((cat) => {
-    categorySelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
-  });
-}
-renderCategoryOptions();
-
-// ------------- Render Table --------------
-function renderProducts() {
-  let keyword = searchProductKeyword.trim().toLowerCase();
-  let filtered = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(keyword) ||
-      p.category.toLowerCase().includes(keyword)
-  );
-  productTableBody.innerHTML = "";
-  filtered.forEach((p) => {
-    productTableBody.innerHTML += `
-        <tr>
-            <td>
-                ${
-                  p.images && p.images[0]
-                    ? `<img src="${p.images[0]}" class="product-thumb">`
-                    : '<span class="text-muted small">ไม่มีรูป</span>'
-                }
-            </td>
-            <td>${p.name}</td>
-            <td>${p.category}</td>
-            <td>${p.cost.toLocaleString()}</td>
-            <td>${p.price.toLocaleString()}</td>
-            <td>${p.profitPercent.toFixed(2)}%</td>
-            <td>${p.status}</td>
-            <td class="text-center">
-                <div class="form-check form-switch d-inline-block">
-                  <input class="form-check-input" type="checkbox" ${
-                    p.visible ? "checked" : ""
-                  } 
-                  onchange="toggleProductVisible(${p.id})">
-                </div>
-            </td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-info" onclick="editProduct(${
-                  p.id
-                })"><i class="bi bi-pencil"></i></button>
-            </td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${
-                  p.id
-                })"><i class="bi bi-trash"></i></button>
-            </td>
-        </tr>
-        `;
-  });
-}
-window.renderProducts = renderProducts;
-
-// -------------- SEARCH -------------
-searchProductInput.addEventListener("input", function (e) {
-  searchProductKeyword = e.target.value;
-  renderProducts();
-});
-
-// --------- TOGGLE VISIBLE ---------
-window.toggleProductVisible = function (id) {
-  const p = products.find((x) => x.id === id);
-  if (p) {
-    p.visible = !p.visible;
-    p.status = p.visible ? "แสดง" : "ซ่อน";
-    renderProducts();
-  }
-};
-
-// --------- ADD/EDIT PRODUCT MODAL ---------
+// SELECTOR
+const productTableBody = document.getElementById("productTableBody");
 const productModal = new bootstrap.Modal(
   document.getElementById("productModal")
 );
 const productForm = document.getElementById("productForm");
-const productFormError = document.getElementById("formError");
-let editProductId = null;
-let imageFiles = [];
+const productImagesInput = document.getElementById("productImages");
+const productImagesPreview = document.getElementById("productImagesPreview");
+const formError = document.getElementById("formError");
+const productCategorySelect = document.getElementById("productCategory");
 
+// ======= AUTO CALCULATE PRICE / PROFIT PERCENT =======
+const productCostInput = document.getElementById("productCost");
+const productProfitPercentInput = document.getElementById(
+  "productProfitPercent"
+);
+const productPriceInput = document.getElementById("productPrice");
+
+let autoByPercent = false; // ใช้ flag ป้องกันวน event ซ้ำ
+let autoByPrice = false;
+
+// ราคาขาย → เปอร์เซ็นต์กำไร
+productPriceInput.addEventListener("input", function () {
+  if (autoByPercent) return; // ป้องกัน loop event
+  const cost = parseFloat(productCostInput.value) || 0;
+  const price = parseFloat(productPriceInput.value) || 0;
+  if (cost > 0 && price > 0) {
+    autoByPrice = true;
+    productProfitPercentInput.value = (((price - cost) / cost) * 100).toFixed(
+      2
+    );
+    autoByPrice = false;
+  } else if (!autoByPrice) {
+    productProfitPercentInput.value = "";
+  }
+});
+
+// เปอร์เซ็นต์กำไร → ราคาขาย
+productProfitPercentInput.addEventListener("input", function () {
+  if (autoByPrice) return;
+  const cost = parseFloat(productCostInput.value) || 0;
+  const percent = parseFloat(productProfitPercentInput.value);
+  if (cost > 0 && !isNaN(percent)) {
+    autoByPercent = true;
+    productPriceInput.value = (cost * (1 + percent / 100)).toFixed(2);
+    autoByPercent = false;
+  } else if (!autoByPercent) {
+    productPriceInput.value = "";
+  }
+});
+
+// ราคาทุนเปลี่ยน → รีคำนวณทั้งสองฝั่ง
+productCostInput.addEventListener("input", function () {
+  if (productProfitPercentInput.value) {
+    productProfitPercentInput.dispatchEvent(new Event("input"));
+  } else if (productPriceInput.value) {
+    productPriceInput.dispatchEvent(new Event("input"));
+  }
+});
+
+// ======= RENDER PRODUCTS =======
+async function renderProducts() {
+  const keyword = searchProductKeyword.trim().toLowerCase();
+
+  // ดึง product ทั้งหมด
+  const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+  if (res.status === 401) {
+    window.location.href = "/index.html";
+    return;
+  }
+  products = await res.json();
+
+  // filter ชื่อสินค้า
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(keyword)
+  );
+
+  productTableBody.innerHTML = "";
+  filteredProducts.forEach((product) => {
+    // กำไร %
+    let profitPercent = "-";
+    if (product.cost && product.price) {
+      profitPercent = (
+        ((product.price - product.cost) / product.cost) *
+        100
+      ).toFixed(2);
+    }
+    // แสดงรูปแรก
+    let firstImage = product.images?.length ? product.images[0] : "";
+
+    const isActive = !!product.is_active; // ค่าจาก backend ต้องเป็น boolean
+    productTableBody.innerHTML += `
+      <tr>
+        <td><img src="${firstImage}" style="width:64px;height:64px;object-fit:cover"></td>
+        <td>${product.name}</td>
+        <td>${getCategoryName(product.category_id)}</td>
+        <td>${product.cost ?? "-"}</td>
+        <td>${product.price ?? "-"}</td>
+        <td>${profitPercent}</td>
+        <td>
+          <span class="${isActive ? "text-success" : "text-secondary"} fw-bold">
+            ${isActive ? "แสดง" : "ซ่อน"}
+          </span>
+        </td>
+        <td class="text-center">
+          <div class="form-check form-switch d-flex justify-content-center">
+            <input class="form-check-input" type="checkbox"
+              id="switchStatus${product.id}"
+              ${isActive ? "checked" : ""}
+              onchange="toggleProductStatus(${product.id}, this.checked)">
+          </div>
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-info" onclick="editProduct(${
+            product.id
+          })">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${
+            product.id
+          })">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+window.renderProducts = renderProducts;
+
+function getCategoryName(categoryId) {
+  const cat = categories.find((c) => c.id === categoryId);
+  return cat ? cat.name : "-";
+}
+
+// ======= RENDER CATEGORIES (DROPDOWN) =======
+async function renderCategoriesDropdown() {
+  const res = await fetch(CATEGORY_API, { headers: getAuthHeaders() });
+  if (res.status === 401) {
+    window.location.href = "/index.html";
+    return;
+  }
+  categories = await res.json();
+
+  productCategorySelect.innerHTML = `<option value="">เลือกประเภทสินค้า</option>`;
+  categories.forEach((cat) => {
+    productCategorySelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+  });
+}
+
+// ======= SEARCH =======
 document
-  .getElementById("btnAddProduct")
-  .addEventListener("click", () => openProductModal());
+  .getElementById("searchProductInput")
+  .addEventListener("input", function (e) {
+    searchProductKeyword = e.target.value;
+    renderProducts();
+  });
+
+// ======= ADD =======
+document.getElementById("btnAddProduct").addEventListener("click", () => {
+  openProductModal();
+});
 
 function openProductModal(product = null) {
   productForm.reset();
-  productFormError.classList.add("d-none");
-  imageFiles = [];
-  renderProductImagesPreview();
+  formError.classList.add("d-none");
+  productImagesPreview.innerHTML = "";
+  tempProductImages = [];
+  renderCategoriesDropdown();
+
+  // ล้าง auto-calc
+  setTimeout(() => {
+    productCostInput.value = "";
+    productProfitPercentInput.value = "";
+    productPriceInput.value = "";
+  }, 0);
 
   if (product) {
     document.getElementById("productModalTitle").textContent = "แก้ไขสินค้า";
     document.getElementById("productId").value = product.id;
     document.getElementById("productName").value = product.name;
-    document.getElementById("productCategory").value = product.category;
-    document.getElementById("productCost").value = product.cost;
+    document.getElementById("productCategory").value = product.category_id;
+    document.getElementById("productCost").value = product.cost || "";
     document.getElementById("productProfitPercent").value =
-      product.profitPercent;
-    document.getElementById("productPrice").value = product.price;
-    document.getElementById("productStatus").value = product.status;
-    editProductId = product.id;
-    imageFiles = [...(product.images || [])];
+      product.cost && product.price
+        ? (((product.price - product.cost) / product.cost) * 100).toFixed(2)
+        : product.profit_percent || "";
+    document.getElementById("productPrice").value = product.price || "";
+    document.getElementById("productStatus").value = product.is_active
+      ? "แสดง"
+      : "ซ่อน";
+    tempProductImages = product.images ? [...product.images] : [];
     renderProductImagesPreview();
+    editProductId = product.id;
   } else {
     document.getElementById("productModalTitle").textContent = "เพิ่มสินค้า";
     document.getElementById("productId").value = "";
@@ -150,155 +217,126 @@ function openProductModal(product = null) {
   productModal.show();
 }
 
-// ----------- SYNC COST/PROFIT/PERCENT ---------------
-const costInput = document.getElementById("productCost");
-const profitPercentInput = document.getElementById("productProfitPercent");
-const priceInput = document.getElementById("productPrice");
-
-costInput.addEventListener("input", syncProfitPrice);
-profitPercentInput.addEventListener("input", function () {
-  if (costInput.value) {
-    const cost = parseFloat(costInput.value);
-    const percent = parseFloat(profitPercentInput.value);
-    if (!isNaN(cost) && !isNaN(percent)) {
-      const price = cost + (cost * percent) / 100;
-      priceInput.value = price.toFixed(2);
-    }
-  }
-});
-priceInput.addEventListener("input", function () {
-  if (costInput.value) {
-    const cost = parseFloat(costInput.value);
-    const price = parseFloat(priceInput.value);
-    if (!isNaN(cost) && !isNaN(price) && cost > 0) {
-      const percent = ((price - cost) / cost) * 100;
-      profitPercentInput.value = percent.toFixed(2);
-    }
-  }
-});
-
-function syncProfitPrice() {
-  // เมื่อแก้ไขต้นทุน ให้ sync ข้อมูลกำไร/ราคาขาย
-  if (costInput.value) {
-    if (profitPercentInput.value) {
-      const cost = parseFloat(costInput.value);
-      const percent = parseFloat(profitPercentInput.value);
-      if (!isNaN(cost) && !isNaN(percent)) {
-        const price = cost + (cost * percent) / 100;
-        priceInput.value = price.toFixed(2);
-      }
-    } else if (priceInput.value) {
-      const cost = parseFloat(costInput.value);
-      const price = parseFloat(priceInput.value);
-      if (!isNaN(cost) && !isNaN(price) && cost > 0) {
-        const percent = ((price - cost) / cost) * 100;
-        profitPercentInput.value = percent.toFixed(2);
-      }
-    }
-  }
-}
-
-// ----------- IMAGE PREVIEW -----------
-const productImagesInput = document.getElementById("productImages");
-const productImagesPreview = document.getElementById("productImagesPreview");
-
+// ======= IMAGE UPLOAD =======
 productImagesInput.addEventListener("change", function (e) {
   const files = Array.from(e.target.files);
-  if (imageFiles.length + files.length > 3) {
-    showFormError("สามารถเพิ่มรูปได้สูงสุด 3 รูปเท่านั้น");
+  if (files.length + tempProductImages.length > 3) {
+    formError.textContent = "เลือกรูปสูงสุด 3 รูป";
+    formError.classList.remove("d-none");
     return;
   }
   files.forEach((file) => {
     const reader = new FileReader();
-    reader.onload = function (evt) {
-      imageFiles.push(evt.target.result);
+    reader.onload = function (ev) {
+      tempProductImages.push(ev.target.result);
       renderProductImagesPreview();
     };
     reader.readAsDataURL(file);
   });
-  // Reset input (allow re-upload same file)
-  productImagesInput.value = "";
+  formError.classList.add("d-none");
 });
+
 function renderProductImagesPreview() {
   productImagesPreview.innerHTML = "";
-  imageFiles.forEach((src, idx) => {
+  tempProductImages.forEach((img, idx) => {
     productImagesPreview.innerHTML += `
-            <span class="image-preview-wrap me-1 mb-1">
-                <img src="${src}" class="product-thumb">
-                <span class="btn-image-remove" onclick="removeImage(${idx})">&times;</span>
-            </span>`;
+      <div class="position-relative d-inline-block">
+        <img src="${img}" style="width: 72px; height: 72px; object-fit:cover;">
+        <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 translate-middle"
+          style="width: 20px; height: 20px; font-size: 10px; line-height: 10px;"
+          onclick="removeProductImage(${idx})">&times;</button>
+      </div>
+    `;
   });
 }
-window.removeImage = function (idx) {
-  imageFiles.splice(idx, 1);
+window.removeProductImage = function (idx) {
+  tempProductImages.splice(idx, 1);
   renderProductImagesPreview();
 };
 
-// ---------- SUBMIT FORM ----------
-productForm.onsubmit = function (e) {
+// ======= SAVE (ADD/EDIT) =======
+productForm.onsubmit = async function (e) {
   e.preventDefault();
+  const id = document.getElementById("productId").value;
   const name = document.getElementById("productName").value.trim();
-  const category = document.getElementById("productCategory").value;
-  const cost = parseFloat(costInput.value);
-  const profitPercent = parseFloat(profitPercentInput.value);
-  const price = parseFloat(priceInput.value);
-  const status = document.getElementById("productStatus").value;
-  if (!name || !category || isNaN(cost) || isNaN(price)) {
-    showFormError("กรุณากรอกข้อมูลให้ครบถ้วน");
+  const category_id = document.getElementById("productCategory").value;
+  const cost = parseFloat(document.getElementById("productCost").value) || 0;
+  const profit_percent =
+    parseFloat(document.getElementById("productProfitPercent").value) || null;
+  const price =
+    parseFloat(document.getElementById("productPrice").value) || null;
+  // เอาค่าสถานะจาก dropdown (productStatus) มาเป็น is_active (boolean)
+  const is_active = document.getElementById("productStatus").value === "แสดง";
+  if (!name || !category_id || !tempProductImages.length) {
+    formError.textContent = "กรุณากรอกข้อมูลที่จำเป็นและเลือกรูปภาพ";
+    formError.classList.remove("d-none");
     return;
   }
-  if (price < cost) {
-    showFormError("ราคาขายต้องมากกว่าหรือเท่ากับราคาต้นทุน");
-    return;
-  }
-  const productData = {
+  formError.classList.add("d-none");
+
+  let productData = {
     name,
-    category,
+    category_id,
     cost,
-    profitPercent,
+    profit_percent,
     price,
-    status,
-    images: [...imageFiles],
-    visible: status === "แสดง",
+    is_active,
+    images: tempProductImages,
   };
-  if (editProductId) {
-    // Edit
-    const idx = products.findIndex((p) => p.id === editProductId);
-    if (idx > -1) {
-      products[idx] = { ...products[idx], ...productData };
-    }
+
+  let res;
+  if (id) {
+    res = await fetch(`${API_BASE}/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(productData),
+    });
   } else {
-    // Add
-    const newId = products.length
-      ? Math.max(...products.map((p) => p.id)) + 1
-      : 1;
-    products.push({ id: newId, ...productData });
+    res = await fetch(API_BASE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(productData),
+    });
   }
-  productModal.hide();
-  renderProducts();
+  if (res.ok) {
+    await renderProducts();
+    productModal.hide();
+  } else if (res.status === 401) {
+    window.location.href = "/index.html";
+  } else {
+    const error = await res.json();
+    formError.textContent = error.error || "เกิดข้อผิดพลาด";
+    formError.classList.remove("d-none");
+  }
 };
 
-function showFormError(msg) {
-  productFormError.textContent = msg;
-  productFormError.classList.remove("d-none");
-  setTimeout(() => productFormError.classList.add("d-none"), 3000);
-}
-
-// ---------- DELETE PRODUCT ----------
-let deleteProductId = null;
+// ======= DELETE =======
 window.deleteProduct = function (id) {
-  const p = products.find((x) => x.id === id);
-  if (!p) return;
+  const product = products.find((p) => p.id === id);
+  if (!product) return;
   deleteProductId = id;
-  document.getElementById("deleteProductName").textContent = p.name;
+  document.getElementById("deleteProductName").textContent = product.name;
   new bootstrap.Modal(document.getElementById("confirmDeleteModal")).show();
 };
 document
   .getElementById("confirmDeleteBtn")
-  .addEventListener("click", function () {
+  .addEventListener("click", async function () {
     if (deleteProductId !== null) {
-      products = products.filter((p) => p.id !== deleteProductId);
-      renderProducts();
+      const res = await fetch(`${API_BASE}/${deleteProductId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        await renderProducts();
+      } else if (res.status === 401) {
+        window.location.href = "/index.html";
+      }
       deleteProductId = null;
     }
     bootstrap.Modal.getInstance(
@@ -306,17 +344,40 @@ document
     ).hide();
   });
 
-// ---------- EDIT PRODUCT ----------
-window.editProduct = function (id) {
-  const p = products.find((x) => x.id === id);
-  if (p) openProductModal(p);
+// ======= EDIT =======
+window.editProduct = async function (id) {
+  const res = await fetch(`${API_BASE}/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  if (res.ok) {
+    const product = await res.json();
+    openProductModal(product);
+  } else if (res.status === 401) {
+    window.location.href = "/index.html";
+  }
 };
 
-// ---------- LOGOUT ----------
+// ======= STATUS TOGGLE =======
+window.toggleProductStatus = async function (id, checked) {
+  await fetch(`${API_BASE}/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ is_active: checked }),
+  });
+  await renderProducts();
+};
+
+// ======= LOGOUT =======
 document.getElementById("logoutBtn").addEventListener("click", function () {
   localStorage.removeItem("jwt_token");
   window.location.href = "/index.html";
 });
 
-// ---------- INIT ----------
-renderProducts();
+// ======= INIT =======
+(async function () {
+  await renderCategoriesDropdown();
+  await renderProducts();
+})();

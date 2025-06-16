@@ -79,14 +79,14 @@
                         <table class="table align-middle table-hover mb-0">
                             <thead>
                                 <tr>
-                                    <th>ชื่อผู้ดูแล</th>
-                                    <th>อีเมล</th>
+                                    <th>ชื่อผู้ดูแลระบบ</th>
+                                    <th>Username (ใช้เข้าระบบ)</th>
                                     <th class="text-center">แก้ไข</th>
                                     <th class="text-center">ลบ</th>
                                 </tr>
                             </thead>
-                            <tbody id="adminTableBody">
-                                <!-- JS เติมข้อมูล -->
+                            <tbody id="adminTableBody"></tbody>
+                            <!-- JS เติมข้อมูล -->
                             </tbody>
                         </table>
                     </div>
@@ -106,12 +106,16 @@
                 <div class="modal-body">
                     <input type="hidden" id="adminId">
                     <div class="mb-3">
-                        <label for="adminName" class="form-label">ชื่อผู้ดูแลระบบ</label>
+                        <label for="adminName" class="form-label">ชื่อผู้ดูแลระบบ (ชื่อจริง)</label>
                         <input type="text" class="form-control" id="adminName" required>
                     </div>
                     <div class="mb-3">
-                        <label for="adminEmail" class="form-label">อีเมล</label>
-                        <input type="email" class="form-control" id="adminEmail" required>
+                        <label for="adminUsername" class="form-label">Username (ใช้เข้าระบบ)</label>
+                        <input type="text" class="form-control" id="adminUsername" required autocomplete="username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminPassword" class="form-label">รหัสผ่าน</label>
+                        <input type="password" class="form-control" id="adminPassword" autocomplete="new-password" />
                     </div>
                     <div id="adminFormError" class="alert alert-danger d-none py-2"></div>
                 </div>
@@ -122,6 +126,7 @@
             </form>
         </div>
     </div>
+
 
     <!-- Modal: Confirm Delete Admin -->
     <div class="modal fade" id="confirmDeleteAdminModal" tabindex="-1" aria-hidden="true">

@@ -7,49 +7,47 @@ document
     const password = document.getElementById("password").value.trim();
     const errorMsg = document.getElementById("errorMsg");
 
-    errorMsg.classList.add("d-none"); // clear error
+    errorMsg.classList.add("d-none");
 
-    if (username === "" || password === "") {
+    if (!username || !password) {
       errorMsg.textContent = "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน";
       errorMsg.classList.remove("d-none");
       return;
     }
 
-    // ---- MOCK LOGIN (ใช้งานได้ทันที ถ้ายังไม่เชื่อม API) ----
-    // Username: admin / Password: 1234
-    if (username === "admin" && password === "1234") {
-      // mock JWT เก็บใน localStorage (จำลองการ login)
-      localStorage.setItem("jwt_token", "demo.mock.jwt.token");
-      window.location.href = "dashboard.html";
-      return;
-    } else {
-      errorMsg.textContent = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+    try {
+      const response = await fetch("http://localhost:3000/admins/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (err) {}
+
+      if (response.ok && data.token) {
+        // เก็บ token ไว้ใช้ใน request ต่อไป
+        localStorage.setItem("jwt_token", data.token);
+        // เก็บข้อมูล user ไว้ใช้ในหน้าอื่น (optional)
+        localStorage.setItem("admin_info", JSON.stringify(data.admin));
+        // redirect ไปหน้า dashboard
+        window.location.href = "/dashboard.html";
+      } else if (data.message) {
+        errorMsg.textContent = data.message;
+        errorMsg.classList.remove("d-none");
+      } else if (data.error) {
+        errorMsg.textContent = data.error;
+        errorMsg.classList.remove("d-none");
+      } else {
+        errorMsg.textContent = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+        errorMsg.classList.remove("d-none");
+      }
+    } catch (error) {
+      errorMsg.textContent = "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์";
       errorMsg.classList.remove("d-none");
     }
-
-    // ---- เชื่อม API จริงในอนาคต (เปิดคอมเมนต์ แล้วแก้ url) ----
-    /*
-    try {
-        const response = await fetch("https://your-api-url.com/api/auth/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.token) {
-            localStorage.setItem("jwt_token", data.token);
-            window.location.href = "index.html";
-        } else {
-            errorMsg.textContent = data.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
-            errorMsg.classList.remove("d-none");
-        }
-    } catch (error) {
-        errorMsg.textContent = "เกิดข้อผิดพลาดในการเชื่อมต่อ";
-        errorMsg.classList.remove("d-none");
-    }
-    */
   });

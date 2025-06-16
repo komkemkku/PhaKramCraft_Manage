@@ -1,18 +1,102 @@
-// ========== MOCK DATA ==========
-let owners = [
-  { id: 1, name: "คุณสมศรี" },
-  { id: 2, name: "ป้าพร" },
-  { id: 3, name: "กลุ่มแม่บ้านผ้าคราม" },
-];
-// สินค้า (เชื่อมโยงเจ้าของ)
-let products = [
-  { id: 1, name: "ผ้าครามลายดอกไม้", owner: "คุณสมศรี" },
-  { id: 2, name: "ผ้าครามสีธรรมชาติ", owner: "ป้าพร" },
-  { id: 3, name: "ผ้าครามย้อมมือ", owner: "กลุ่มแม่บ้านผ้าคราม" },
-  { id: 4, name: "ผ้าครามแฟชั่น", owner: "ป้าพร" },
-];
+// ========== CONFIG ==========
+const API_BASE_URL = "http://localhost:3000";
 
+// ========== TOKEN GUARD ==========
+if (!localStorage.getItem("jwt_token")) {
+  window.location.href = "/login.html";
+}
+
+// ========== GLOBAL ==========
 let searchOwnerKeyword = "";
+
+// ========== API FUNCTIONS ==========
+function getAuthHeaders() {
+  const token = localStorage.getItem("jwt_token");
+  return token
+    ? {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      }
+    : { "Content-Type": "application/json" };
+}
+
+async function fetchOwners() {
+  const res = await fetch(`${API_BASE_URL}/owners`, {
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 401) {
+    localStorage.removeItem("jwt_token");
+    window.location.href = "/login.html";
+    return;
+  }
+  if (!res.ok) throw new Error("โหลดข้อมูลล้มเหลว");
+  return await res.json();
+}
+
+async function addOwner(name) {
+  const res = await fetch(`${API_BASE_URL}/owners`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ name }),
+  });
+  if (res.status === 401) {
+    localStorage.removeItem("jwt_token");
+    window.location.href = "/login.html";
+    return;
+  }
+  if (!res.ok) {
+    let msg = "เพิ่มข้อมูลล้มเหลว";
+    try {
+      const err = await res.json();
+      msg = err.error || msg;
+    } catch (e) {}
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
+async function updateOwner(id, name) {
+  const res = await fetch(`${API_BASE_URL}/owners/${id}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ name }),
+  });
+  if (res.status === 401) {
+    localStorage.removeItem("jwt_token");
+    window.location.href = "/login.html";
+    return;
+  }
+  if (!res.ok) {
+    let msg = "อัปเดตข้อมูลล้มเหลว";
+    try {
+      const err = await res.json();
+      msg = err.error || msg;
+    } catch (e) {}
+    throw new Error(msg);
+  }
+  return await res.json();
+}
+
+async function deleteOwnerApi(id) {
+  const res = await fetch(`${API_BASE_URL}/owners/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 401) {
+    localStorage.removeItem("jwt_token");
+    window.location.href = "/login.html";
+    return;
+  }
+  if (!res.ok) {
+    let msg = "ลบข้อมูลล้มเหลว";
+    try {
+      const err = await res.json();
+      msg = err.error || msg;
+    } catch (e) {}
+    throw new Error(msg);
+  }
+  return await res.json();
+}
 
 // ========== SELECTOR ==========
 const ownerTableBody = document.getElementById("ownerTableBody");
@@ -22,32 +106,37 @@ const ownerFormError = document.getElementById("ownerFormError");
 let editOwnerId = null;
 
 // ========== RENDER ==========
-function renderOwners() {
-  const keyword = searchOwnerKeyword.trim().toLowerCase();
-  const filteredOwners = owners.filter((owner) =>
-    owner.name.toLowerCase().includes(keyword)
-  );
-  ownerTableBody.innerHTML = "";
-  filteredOwners.forEach((owner) => {
-    // นับจำนวนสินค้าเจ้าของนี้
-    const productCount = products.filter((p) => p.owner === owner.name).length;
-    ownerTableBody.innerHTML += `
-            <tr>
-                <td>${owner.name}</td>
-                <td>${productCount} รายการ</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-info" onclick="editOwner(${owner.id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOwner(${owner.id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-  });
+async function renderOwners() {
+  try {
+    const owners = await fetchOwners();
+    const keyword = searchOwnerKeyword.trim().toLowerCase();
+    const filteredOwners = owners.filter((owner) =>
+      owner.name.toLowerCase().includes(keyword)
+    );
+    ownerTableBody.innerHTML = "";
+    filteredOwners.forEach((owner) => {
+      // ถ้ามี amount จาก API เช่น { amount: 3 }
+      const productCount = owner.amount !== undefined ? owner.amount : "-";
+      ownerTableBody.innerHTML += `
+        <tr>
+          <td>${owner.name}</td>
+          <td>${productCount} รายการ</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-info" onclick="editOwner(${owner.id})">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-danger" onclick="prepareDeleteOwner(${owner.id}, '${owner.name}')">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (e) {
+    ownerTableBody.innerHTML = `<tr><td colspan="4" class="text-danger">เกิดข้อผิดพลาด: ${e.message}</td></tr>`;
+  }
 }
 window.renderOwners = renderOwners;
 
@@ -83,7 +172,7 @@ function openOwnerModal(owner = null) {
 }
 
 // ========== SAVE ==========
-ownerForm.onsubmit = function (e) {
+ownerForm.onsubmit = async function (e) {
   e.preventDefault();
   const id = document.getElementById("ownerId").value;
   const name = document.getElementById("ownerName").value.trim();
@@ -93,47 +182,40 @@ ownerForm.onsubmit = function (e) {
     return;
   }
   ownerFormError.classList.add("d-none");
-  if (id) {
-    // แก้ไข
-    const index = owners.findIndex((o) => o.id == id);
-    if (index > -1) {
-      // ถ้าเปลี่ยนชื่อ ต้องแก้ใน products ด้วย
-      const oldName = owners[index].name;
-      owners[index].name = name;
-      products.forEach((p) => {
-        if (p.owner === oldName) p.owner = name;
-      });
+  try {
+    if (id) {
+      await updateOwner(id, name);
+    } else {
+      await addOwner(name);
     }
-  } else {
-    // เพิ่ม
-    const newId = owners.length ? Math.max(...owners.map((o) => o.id)) + 1 : 1;
-    owners.push({ id: newId, name });
+    await renderOwners();
+    ownerModal.hide();
+  } catch (e) {
+    ownerFormError.textContent = e.message;
+    ownerFormError.classList.remove("d-none");
   }
-  renderOwners();
-  ownerModal.hide();
 };
 
 // ========== DELETE ==========
 let deleteOwnerId = null;
-window.deleteOwner = function (id) {
-  const owner = owners.find((o) => o.id === id);
-  if (!owner) return;
+window.prepareDeleteOwner = function (id, name) {
   deleteOwnerId = id;
-  document.getElementById("deleteOwnerName").textContent = owner.name;
+  document.getElementById("deleteOwnerName").textContent = name;
   new bootstrap.Modal(
     document.getElementById("confirmDeleteOwnerModal")
   ).show();
 };
 document
   .getElementById("confirmDeleteOwnerBtn")
-  .addEventListener("click", function () {
+  .addEventListener("click", async function () {
     if (deleteOwnerId !== null) {
-      const deletedOwner = owners.find((o) => o.id === deleteOwnerId);
-      // ลบสินค้าเจ้าของนี้ด้วย (ถ้าต้องการ)
-      // products = products.filter(p => p.owner !== deletedOwner.name);
-      owners = owners.filter((o) => o.id !== deleteOwnerId);
-      renderOwners();
-      deleteOwnerId = null;
+      try {
+        await deleteOwnerApi(deleteOwnerId);
+        await renderOwners();
+        deleteOwnerId = null;
+      } catch (e) {
+        alert("เกิดข้อผิดพลาดในการลบ: " + e.message);
+      }
     }
     bootstrap.Modal.getInstance(
       document.getElementById("confirmDeleteOwnerModal")
@@ -141,10 +223,15 @@ document
   });
 
 // ========== EDIT ==========
-window.editOwner = function (id) {
-  const owner = owners.find((o) => o.id === id);
-  if (owner) {
-    openOwnerModal(owner);
+window.editOwner = async function (id) {
+  try {
+    const owners = await fetchOwners();
+    const owner = owners.find((o) => o.id === id);
+    if (owner) {
+      openOwnerModal(owner);
+    }
+  } catch (e) {
+    alert("เกิดข้อผิดพลาด: " + e.message);
   }
 };
 
