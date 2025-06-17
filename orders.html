@@ -73,9 +73,11 @@
                         <div class="col-md-4">
                             <select class="form-select" id="statusFilter">
                                 <option value="">ทุกสถานะ</option>
-                                <option value="รอดำเนินการ">รอดำเนินการ</option>
-                                <option value="ชำระเงินแล้ว">ชำระเงินแล้ว</option>
-                                <option value="จัดส่งแล้ว">จัดส่งแล้ว</option>
+                                <option value="pending">รอชำระเงิน</option>
+                                <option value="paid">ชำระเงินแล้ว</option>
+                                <option value="shipping">รอจัดส่ง</option>
+                                <option value="delivered">จัดส่งแล้ว</option>
+                                <option value="cancelled">ยกเลิก</option>
                             </select>
                         </div>
                     </div>
@@ -97,6 +99,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div id="paginationContainer" class="mt-3"></div>
                 </div>
             </div>
         </div>
