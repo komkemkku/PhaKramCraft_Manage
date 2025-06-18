@@ -6,7 +6,9 @@ const selectYear = document.getElementById("selectYear");
 
 // =============== YEAR SELECTOR ================
 async function loadYears() {
-  const res = await fetch("https://phakramcraftapi-production.up.railway.app/dashboard/years");
+  const res = await fetch(
+    "https://phakramcraftapi-production.up.railway.app/dashboard/years"
+  );
   const years = await res.json();
   selectYear.innerHTML = "";
   years.forEach((year) => {
@@ -23,7 +25,9 @@ selectYear.addEventListener("change", function () {
 // ============== RENDER DASHBOARD ===============
 async function renderDashboard() {
   // 1. SUMMARY
-  const resSummary = await fetch("https://phakramcraftapi-production.up.railway.app/dashboard/summary");
+  const resSummary = await fetch(
+    "https://phakramcraftapi-production.up.railway.app/dashboard/summary"
+  );
   const summary = await resSummary.json();
   document.getElementById("statProductCount").textContent =
     summary.product_count;
@@ -31,6 +35,15 @@ async function renderDashboard() {
     summary.category_count;
   document.getElementById("statSoldCount").textContent = summary.sold_count;
   document.getElementById("statUserCount").textContent = summary.user_count;
+
+  // ====== Show ต้นทุน ยอดขาย กำไร ======
+
+  document.getElementById("statTotalCost").textContent =
+    (Number(summary.total_cost) || 0).toLocaleString() + " บาท";
+  document.getElementById("statTotalSales").textContent =
+    (Number(summary.total_sales) || 0).toLocaleString() + " บาท";
+  document.getElementById("statTotalProfit").textContent =
+    (Number(summary.total_profit) || 0).toLocaleString() + " บาท";
 
   // 2. CATEGORY SOLD COUNT
   const resCat = await fetch(

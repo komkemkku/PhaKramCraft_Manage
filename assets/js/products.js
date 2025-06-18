@@ -11,8 +11,8 @@ let products = [];
 let categories = [];
 let searchProductKeyword = "";
 let editProductId = null;
-let tempProductImages = []; // สำหรับ images array
-let tempProductImg = ""; // สำหรับ img (url เดียว)
+let tempProductImages = [];
+let tempProductImg = "";
 let deleteProductId = null;
 
 // SELECTOR
@@ -98,7 +98,6 @@ async function renderProducts() {
       ).toFixed(2);
     }
 
-    // ===== สำคัญ! ใช้ img ถ้ามี ถ้าไม่มีใช้ images[0] =====
     let firstImage = product.img
       ? product.img
       : product.images?.length
@@ -120,6 +119,10 @@ async function renderProducts() {
         <td>${product.cost ?? "-"}</td>
         <td>${product.price ?? "-"}</td>
         <td>${profitPercent}</td>
+        <td>${product.stock ?? "-"}</td>
+        <td>${
+          product.description ? product.description.substring(0, 40) : "-"
+        }</td>
         <td>
           <span class="${isActive ? "text-success" : "text-secondary"} fw-bold">
             ${isActive ? "แสดง" : "ซ่อน"}
@@ -211,20 +214,23 @@ function openProductModal(product = null) {
         ? (((product.price - product.cost) / product.cost) * 100).toFixed(2)
         : product.profit_percent || "";
     document.getElementById("productPrice").value = product.price || "";
+    document.getElementById("productStock").value = product.stock ?? "";
+    document.getElementById("productDescription").value =
+      product.description || "";
     document.getElementById("productStatus").value = product.is_active
       ? "แสดง"
       : "ซ่อน";
-    // อ่านค่ารูปจาก img หรือ images
     tempProductImg = product.img || "";
     tempProductImages = product.images ? [...product.images] : [];
     renderProductImagesPreview();
-    // ใส่ url ในช่อง input ด้วย (กรณีแก้ไข)
     document.getElementById("productImageUrl").value = tempProductImg;
     editProductId = product.id;
   } else {
     document.getElementById("productModalTitle").textContent = "เพิ่มสินค้า";
     document.getElementById("productId").value = "";
     editProductId = null;
+    document.getElementById("productStock").value = "";
+    document.getElementById("productDescription").value = "";
   }
   productModal.show();
 }
@@ -310,6 +316,8 @@ productForm.onsubmit = async function (e) {
     parseFloat(document.getElementById("productProfitPercent").value) || null;
   const price =
     parseFloat(document.getElementById("productPrice").value) || null;
+  const stock = parseInt(document.getElementById("productStock").value) || 0;
+  const description = document.getElementById("productDescription").value || "";
   const is_active = document.getElementById("productStatus").value === "แสดง";
   if (
     !name ||
@@ -322,13 +330,14 @@ productForm.onsubmit = async function (e) {
   }
   formError.classList.add("d-none");
 
-  // ส่ง img (url) ถ้าใช้, images (array) ถ้าใช้
   let productData = {
     name,
     category_id,
     cost,
     profit_percent,
     price,
+    stock,
+    description,
     is_active,
   };
   if (tempProductImg) productData.img = tempProductImg;

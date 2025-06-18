@@ -82,6 +82,8 @@
                                     <th>ต้นทุน (บาท)</th>
                                     <th>ราคาขาย (บาท)</th>
                                     <th>เปอร์เซ็นต์กำไร (%)</th>
+                                    <th>คงเหลือ</th>
+                                    <th>รายละเอียด</th>
                                     <th>สถานะ</th>
                                     <th class="text-center">แสดง/ซ่อน</th>
                                     <th class="text-center">แก้ไข</th>
@@ -121,22 +123,30 @@
                                 </select>
                             </div>
                             <div class="row g-2">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="productCost" class="form-label">ราคาต้นทุน (บาท)</label>
                                     <input type="number" class="form-control" id="productCost" min="0" required>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="productProfitPercent" class="form-label">เปอร์เซ็นต์กำไร (%)</label>
+                                <div class="col-md-3">
+                                    <label for="productProfitPercent" class="form-label">เปอร์เซ็นต์กำไร</label>
                                     <input type="number" class="form-control" id="productProfitPercent" min="0"
                                         step="0.01">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="productPrice" class="form-label">ราคาขาย (บาท)</label>
                                     <input type="number" class="form-control" id="productPrice" min="0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="productStock" class="form-label">คงเหลือในสต๊อก</label>
+                                    <input type="number" class="form-control" id="productStock" min="0" required>
                                 </div>
                             </div>
                             <div class="form-text mb-3 text-secondary">* ใส่ “เปอร์เซ็นต์กำไร” หรือ “ราคาขาย”
                                 อย่างใดอย่างหนึ่ง ระบบจะคำนวณให้อัตโนมัติ</div>
+                            <div class="mb-3">
+                                <label for="productDescription" class="form-label">รายละเอียดสินค้า</label>
+                                <textarea class="form-control" id="productDescription" rows="2"></textarea>
+                            </div>
                             <div class="mb-3">
                                 <label for="productStatus" class="form-label">สถานะ</label>
                                 <select class="form-select" id="productStatus">
@@ -162,8 +172,6 @@
                         </div>
                         <div id="productImagesPreview" class="mb-3"></div>
                         <div class="alert alert-danger d-none" id="formError"></div>
-
-
                     </div>
                     <div id="formError" class="alert alert-danger d-none py-2"></div>
                 </div>
