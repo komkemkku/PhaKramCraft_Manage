@@ -145,12 +145,25 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">รูปสินค้า (สูงสุด 3 รูป)</label>
-                            <div class="mb-2 d-flex flex-wrap gap-2" id="productImagesPreview"></div>
-                            <input type="file" id="productImages" class="form-control" accept="image/*" multiple>
-                            <div class="form-text text-danger small">* รองรับสูงสุด 3 รูป</div>
+                        <div class="mb-3">
+                            <label for="productImages" class="form-label">เลือกรูปภาพ (สูงสุด 3 รูป)</label>
+                            <input class="form-control" type="file" id="productImages" accept="image/*" multiple>
                         </div>
+                        <div class="mb-3">
+                            <label for="productImageUrl" class="form-label">หรือเพิ่มลิงก์รูปภาพ (Image URL)</label>
+                            <div class="input-group">
+                                <input type="url" class="form-control" id="productImageUrl"
+                                    placeholder="https://example.com/image.jpg">
+                                <button type="button" class="btn btn-secondary"
+                                    id="btnAddImageUrl">เพิ่มรูปจากลิงก์</button>
+                            </div>
+                            <div class="form-text">รองรับไฟล์ .jpg, .png, .gif, .webp หรือ url ที่ลงท้าย .jpg, .png,
+                                .gif, .webp</div>
+                        </div>
+                        <div id="productImagesPreview" class="mb-3"></div>
+                        <div class="alert alert-danger d-none" id="formError"></div>
+
+
                     </div>
                     <div id="formError" class="alert alert-danger d-none py-2"></div>
                 </div>

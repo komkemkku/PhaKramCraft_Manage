@@ -1,5 +1,6 @@
 const API_BASE = "https://phakramcraftapi-production.up.railway.app/products";
-const CATEGORY_API = "https://phakramcraftapi-production.up.railway.app/categories";
+const CATEGORY_API =
+  "https://phakramcraftapi-production.up.railway.app/categories";
 
 function getAuthHeaders() {
   const token = localStorage.getItem("jwt_token");
@@ -10,7 +11,8 @@ let products = [];
 let categories = [];
 let searchProductKeyword = "";
 let editProductId = null;
-let tempProductImages = [];
+let tempProductImages = []; // สำหรับ images array
+let tempProductImg = ""; // สำหรับ img (url เดียว)
 let deleteProductId = null;
 
 // SELECTOR
@@ -31,12 +33,11 @@ const productProfitPercentInput = document.getElementById(
 );
 const productPriceInput = document.getElementById("productPrice");
 
-let autoByPercent = false; // ใช้ flag ป้องกันวน event ซ้ำ
+let autoByPercent = false;
 let autoByPrice = false;
 
-// ราคาขาย → เปอร์เซ็นต์กำไร
 productPriceInput.addEventListener("input", function () {
-  if (autoByPercent) return; // ป้องกัน loop event
+  if (autoByPercent) return;
   const cost = parseFloat(productCostInput.value) || 0;
   const price = parseFloat(productPriceInput.value) || 0;
   if (cost > 0 && price > 0) {
@@ -50,7 +51,6 @@ productPriceInput.addEventListener("input", function () {
   }
 });
 
-// เปอร์เซ็นต์กำไร → ราคาขาย
 productProfitPercentInput.addEventListener("input", function () {
   if (autoByPrice) return;
   const cost = parseFloat(productCostInput.value) || 0;
@@ -64,7 +64,6 @@ productProfitPercentInput.addEventListener("input", function () {
   }
 });
 
-// ราคาทุนเปลี่ยน → รีคำนวณทั้งสองฝั่ง
 productCostInput.addEventListener("input", function () {
   if (productProfitPercentInput.value) {
     productProfitPercentInput.dispatchEvent(new Event("input"));
@@ -76,8 +75,6 @@ productCostInput.addEventListener("input", function () {
 // ======= RENDER PRODUCTS =======
 async function renderProducts() {
   const keyword = searchProductKeyword.trim().toLowerCase();
-
-  // ดึง product ทั้งหมด
   const res = await fetch(API_BASE, { headers: getAuthHeaders() });
   if (res.status === 401) {
     window.location.href = "/index.html";
@@ -100,13 +97,24 @@ async function renderProducts() {
         100
       ).toFixed(2);
     }
-    // แสดงรูปแรก
-    let firstImage = product.images?.length ? product.images[0] : "";
 
-    const isActive = !!product.is_active; // ค่าจาก backend ต้องเป็น boolean
+    // ===== สำคัญ! ใช้ img ถ้ามี ถ้าไม่มีใช้ images[0] =====
+    let firstImage = product.img
+      ? product.img
+      : product.images?.length
+      ? product.images[0]
+      : "";
+
+    const isActive = !!product.is_active;
     productTableBody.innerHTML += `
       <tr>
-        <td><img src="${firstImage}" style="width:64px;height:64px;object-fit:cover"></td>
+        <td>
+          ${
+            firstImage
+              ? `<img src="${firstImage}" style="width:64px;height:64px;object-fit:cover">`
+              : `<span class="text-secondary">-</span>`
+          }
+        </td>
         <td>${product.name}</td>
         <td>${getCategoryName(product.category_id)}</td>
         <td>${product.cost ?? "-"}</td>
@@ -183,9 +191,9 @@ function openProductModal(product = null) {
   formError.classList.add("d-none");
   productImagesPreview.innerHTML = "";
   tempProductImages = [];
+  tempProductImg = "";
   renderCategoriesDropdown();
 
-  // ล้าง auto-calc
   setTimeout(() => {
     productCostInput.value = "";
     productProfitPercentInput.value = "";
@@ -206,8 +214,12 @@ function openProductModal(product = null) {
     document.getElementById("productStatus").value = product.is_active
       ? "แสดง"
       : "ซ่อน";
+    // อ่านค่ารูปจาก img หรือ images
+    tempProductImg = product.img || "";
     tempProductImages = product.images ? [...product.images] : [];
     renderProductImagesPreview();
+    // ใส่ url ในช่อง input ด้วย (กรณีแก้ไข)
+    document.getElementById("productImageUrl").value = tempProductImg;
     editProductId = product.id;
   } else {
     document.getElementById("productModalTitle").textContent = "เพิ่มสินค้า";
@@ -236,12 +248,40 @@ productImagesInput.addEventListener("change", function (e) {
   formError.classList.add("d-none");
 });
 
+// ======= IMAGE URL ADD =======
+document
+  .getElementById("btnAddImageUrl")
+  .addEventListener("click", function () {
+    const urlInput = document.getElementById("productImageUrl");
+    const url = urlInput.value.trim();
+    if (!url) return;
+    if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
+      formError.textContent =
+        "กรุณากรอก URL รูปภาพที่ถูกต้อง (.jpg, .png, .gif, .webp)";
+      formError.classList.remove("d-none");
+      return;
+    }
+    tempProductImg = url;
+    renderProductImagesPreview();
+    formError.classList.add("d-none");
+  });
+
 function renderProductImagesPreview() {
   productImagesPreview.innerHTML = "";
+  if (tempProductImg) {
+    productImagesPreview.innerHTML += `
+      <div class="position-relative d-inline-block me-2 mb-2">
+        <img src="${tempProductImg}" style="width: 72px; height: 72px; object-fit:cover; border:1px solid #ccc;">
+        <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 translate-middle"
+          style="width: 20px; height: 20px; font-size: 10px; line-height: 10px;"
+          onclick="removeProductImg()">&times;</button>
+      </div>
+    `;
+  }
   tempProductImages.forEach((img, idx) => {
     productImagesPreview.innerHTML += `
-      <div class="position-relative d-inline-block">
-        <img src="${img}" style="width: 72px; height: 72px; object-fit:cover;">
+      <div class="position-relative d-inline-block me-2 mb-2">
+        <img src="${img}" style="width: 72px; height: 72px; object-fit:cover; border:1px solid #ccc;">
         <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 translate-middle"
           style="width: 20px; height: 20px; font-size: 10px; line-height: 10px;"
           onclick="removeProductImage(${idx})">&times;</button>
@@ -249,6 +289,11 @@ function renderProductImagesPreview() {
     `;
   });
 }
+window.removeProductImg = function () {
+  tempProductImg = "";
+  document.getElementById("productImageUrl").value = "";
+  renderProductImagesPreview();
+};
 window.removeProductImage = function (idx) {
   tempProductImages.splice(idx, 1);
   renderProductImagesPreview();
@@ -265,15 +310,19 @@ productForm.onsubmit = async function (e) {
     parseFloat(document.getElementById("productProfitPercent").value) || null;
   const price =
     parseFloat(document.getElementById("productPrice").value) || null;
-  // เอาค่าสถานะจาก dropdown (productStatus) มาเป็น is_active (boolean)
   const is_active = document.getElementById("productStatus").value === "แสดง";
-  if (!name || !category_id || !tempProductImages.length) {
+  if (
+    !name ||
+    !category_id ||
+    (!tempProductImg && tempProductImages.length === 0)
+  ) {
     formError.textContent = "กรุณากรอกข้อมูลที่จำเป็นและเลือกรูปภาพ";
     formError.classList.remove("d-none");
     return;
   }
   formError.classList.add("d-none");
 
+  // ส่ง img (url) ถ้าใช้, images (array) ถ้าใช้
   let productData = {
     name,
     category_id,
@@ -281,8 +330,9 @@ productForm.onsubmit = async function (e) {
     profit_percent,
     price,
     is_active,
-    images: tempProductImages,
   };
+  if (tempProductImg) productData.img = tempProductImg;
+  if (tempProductImages.length) productData.images = tempProductImages;
 
   let res;
   if (id) {
