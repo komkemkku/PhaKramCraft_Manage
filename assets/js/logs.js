@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000/logs";
+const API_BASE = "https://phakramcraftapi-production.up.railway.app/logs";
 
 let logs = [];
 let logTotalPages = 1;

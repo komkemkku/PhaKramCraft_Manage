@@ -9,7 +9,7 @@ const adminFormError = document.getElementById("adminFormError");
 let editAdminId = null;
 
 // ========== API HELPERS ==========
-const API_BASE = "http://localhost:3000/admins";
+const API_BASE = "https://phakramcraftapi-production.up.railway.app/admins";
 
 function getToken() {
   return localStorage.getItem("jwt_token");

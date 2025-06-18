@@ -1,5 +1,5 @@
-const API_BASE = "http://localhost:3000/products";
-const CATEGORY_API = "http://localhost:3000/categories";
+const API_BASE = "https://phakramcraftapi-production.up.railway.app/products";
+const CATEGORY_API = "https://phakramcraftapi-production.up.railway.app/categories";
 
 function getAuthHeaders() {
   const token = localStorage.getItem("jwt_token");

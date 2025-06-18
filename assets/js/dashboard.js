@@ -6,7 +6,7 @@ const selectYear = document.getElementById("selectYear");
 
 // =============== YEAR SELECTOR ================
 async function loadYears() {
-  const res = await fetch("http://localhost:3000/dashboard/years");
+  const res = await fetch("https://phakramcraftapi-production.up.railway.app/dashboard/years");
   const years = await res.json();
   selectYear.innerHTML = "";
   years.forEach((year) => {
@@ -23,7 +23,7 @@ selectYear.addEventListener("change", function () {
 // ============== RENDER DASHBOARD ===============
 async function renderDashboard() {
   // 1. SUMMARY
-  const resSummary = await fetch("http://localhost:3000/dashboard/summary");
+  const resSummary = await fetch("https://phakramcraftapi-production.up.railway.app/dashboard/summary");
   const summary = await resSummary.json();
   document.getElementById("statProductCount").textContent =
     summary.product_count;
@@ -34,7 +34,7 @@ async function renderDashboard() {
 
   // 2. CATEGORY SOLD COUNT
   const resCat = await fetch(
-    `http://localhost:3000/dashboard/sold-by-category/${selectedYear}`
+    `https://phakramcraftapi-production.up.railway.app/dashboard/sold-by-category/${selectedYear}`
   );
   const soldByCategory = await resCat.json();
   const statByCategoryList = document.getElementById("statByCategoryList");
@@ -49,14 +49,14 @@ async function renderDashboard() {
 
   // 3. SALES BY MONTH (GRAPH)
   const resMonth = await fetch(
-    `http://localhost:3000/dashboard/sales-by-month/${selectedYear}`
+    `https://phakramcraftapi-production.up.railway.app/dashboard/sales-by-month/${selectedYear}`
   );
   const monthly = await resMonth.json();
   renderChart(monthly);
 
   // 4. RECENT ORDERS
   const resRecent = await fetch(
-    `http://localhost:3000/dashboard/recent-orders/${selectedYear}`
+    `https://phakramcraftapi-production.up.railway.app/dashboard/recent-orders/${selectedYear}`
   );
   const orders = await resRecent.json();
   renderOrderTable(orders);

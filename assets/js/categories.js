@@ -1,5 +1,5 @@
 // ========== API BASE ==========
-const API_BASE = "http://localhost:3000/categories"; // เปลี่ยนเป็น endpoint ที่ถูกต้อง
+const API_BASE = "https://phakramcraftapi-production.up.railway.app/categories"; // เปลี่ยนเป็น endpoint ที่ถูกต้อง
 
 function getAuthHeaders() {
   const token = localStorage.getItem("jwt_token");

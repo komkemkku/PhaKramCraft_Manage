@@ -24,7 +24,7 @@ function mapStatusToThai(status) {
 
 // ดึงข้อมูลคำสั่งซื้อ (พร้อมค้นหา กรองสถานะ และหน้า)
 async function fetchOrders() {
-  let url = `http://localhost:3000/adminorders?q=${encodeURIComponent(
+  let url = `https://phakramcraftapi-production.up.railway.app/adminorders?q=${encodeURIComponent(
     orderSearchKeyword
   )}&status=${encodeURIComponent(
     statusFilter.value
@@ -168,7 +168,7 @@ function renderFullAddress(order) {
 // ดูรายละเอียด
 window.viewOrderDetail = async function (id) {
   window.currentOrderId = id;
-  const res = await fetch(`http://localhost:3000/adminorders/${id}`);
+  const res = await fetch(`https://phakramcraftapi-production.up.railway.app/adminorders/${id}`);
   const order = await res.json();
 
   // --- แสดงข้อมูลหลักฐานการชำระเงิน (ถ้ามี) ---
@@ -295,7 +295,7 @@ document
     const select = document.getElementById("orderStatusSelect");
     const trackingInput = document.getElementById("trackingInput");
     if (!window.currentOrderId || !select) return;
-    await fetch(`http://localhost:3000/adminorders/${window.currentOrderId}`, {
+    await fetch(`https://phakramcraftapi-production.up.railway.app/adminorders/${window.currentOrderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -322,7 +322,7 @@ document
   .getElementById("confirmDeleteOrderBtn")
   .addEventListener("click", async function () {
     if (deleteOrderId !== null) {
-      await fetch(`http://localhost:3000/adminorders/${deleteOrderId}`, {
+      await fetch(`https://phakramcraftapi-production.up.railway.app/adminorders/${deleteOrderId}`, {
         method: "DELETE",
       });
       fetchOrders();

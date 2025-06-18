@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000/paymentsystems";
+const API_BASE = "https://phakramcraftapi-production.up.railway.app/paymentsystems";
 
 let paymentMethods = [];
 
